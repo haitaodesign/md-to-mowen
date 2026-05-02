@@ -59,6 +59,30 @@ MOWEN_API_KEY=...              # 墨问开放平台 API Key
 
 ---
 
+## Lint 命令速查
+
+| 命令 | 说明 |
+|---|---|
+| `npm run lint:pii` | PII 防泄漏扫描（路径/Token/邮箱/用户名） |
+| `npm run lint` | PII + Prettier 格式检查 |
+| `npm run format` | 自动格式化（Prettier） |
+| `npm run check` | TypeScript 类型检查 |
+| `npm test` | 单元测试 |
+
+**PII 规则摘要**：
+
+| ID | 规则 | 严重度 |
+|---|---|---|
+| P1 | 绝对路径含 home 目录（示例：`Users/<name>/`） | ERROR |
+| P2 | 疑似硬编码 API Key（引号内 24+ 随机字符） | ERROR |
+| P3 | `.env` 被 git 追踪 | ERROR |
+| W1 | 邮箱地址 | WARN |
+| W2 | GitHub username 硬编码 | WARN |
+
+脱敏方法：将 home 绝对路径替换为 `${DEV_HOME}/`，密钥写入 `.env`。
+
+---
+
 ## 关键文档索引（按需加载）
 
 | 文档 | 内容 | 何时读 |

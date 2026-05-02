@@ -1,0 +1,4 @@
+{
+  "*.{ts,tsx,js,mjs,json,md}": ["prettier --check"],
+  "**/*": ["node scripts/lint-pii.mjs --staged"]
+}
