@@ -31,9 +31,11 @@ const ERROR_RULES = [
   {
     id: 'P2',
     name: '疑似硬编码 API Key / Token',
-    // 引号包裹的 24 字符以上随机串（排除 UUID、semver、URL 路径）
+    // 引号包裹的 24 字符以上的串，且必须包含数字（排除纯单词组合的配置 key 名）
     regex: /["'][A-Za-z0-9+/]{24,}["']/g,
     hint: '请将密钥写入 .env，代码中使用 process.env.YOUR_KEY',
+    // 过滤：纯字母（camelCase 配置名）不算 token
+    filter: (match) => /[0-9]/.test(match),
   },
   {
     id: 'P3',
@@ -93,6 +95,8 @@ function scanLine(filePath, lineNum, line, rules, severity) {
 
     const matches = [...line.matchAll(rule.regex)];
     for (const m of matches) {
+      // 可选的额外过滤条件
+      if (rule.filter && !rule.filter(m[0])) continue;
       findings.push({ severity, id: rule.id, name: rule.name, file: filePath, line: lineNum, match: m[0], hint: rule.hint });
     }
   }

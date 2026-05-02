@@ -272,17 +272,14 @@ md-to-mowen/
 
 ## 7. 墨问 API 集成
 
-### Base URL 与鉴权
+> API 完整文档见：
+> - **在线文档**：<https://mowen.apifox.cn/>
+> - **本地文档**：[docs/api/README.md](api/README.md)（含接口详情、NoteAtom 格式、上传流程、错误码）
 
-```
-Base URL: https://open.mowen.cn
-鉴权:     Authorization: Bearer ${MOWEN_API_KEY}
-```
-
-### 客户端接口
+### 客户端接口摘要
 
 ```typescript
-// src/mowen/client.ts
+// src/mowen/client.ts — 实现时参考 docs/api/endpoints.md
 
 interface MowenClient {
   createNote(body: NoteAtomDoc, settings?: NoteSettings): Promise<{ noteId: string }>;
@@ -293,41 +290,6 @@ interface MowenClient {
 }
 
 type FileType = 1 | 2 | 3;  // 1=图片, 2=音频, 3=PDF
-
-interface NoteSettings {
-  autoPublish?: boolean;      // 默认：false（草稿）
-  tags?: string[];
-}
-```
-
-### 图片上传流程（两步 OSS）
-
-```
-1. POST /upload/prepare  { fileType: 1, fileName: "image.png" }
-   → 返回：含 OSS 凭证 + x:file_id 的 form 对象
-
-2. POST {form.endpoint}  (multipart/form-data)
-   字段：key, policy, callback, success_action_status,
-         x-oss-credential, x-oss-date, x-oss-meta-mo-uid,
-         x-oss-signature, x-oss-signature-version,
-         x:file_id, x:file_name, x:file_uid, file（二进制）
-   → 返回：{ fileId: "xxx-TMP", fileName: "..." }
-
-3. 将 fileId 作为 NoteAtom image 节点 attrs 中的 uuid
-```
-
-### 频率限制
-
-| 操作 | 限制 |
-|---|---|
-| 创建笔记 | 100次/天 |
-| 编辑笔记 | 1000次/天 |
-| 上传文件 | 200次/天 |
-
-### 笔记 URL 格式
-
-```
-https://mowen.cn/note/{noteId}
 ```
 
 ---
@@ -539,7 +501,8 @@ MAST → Markdown (src/mast/to-markdown.ts)
 |---|---|
 | 参考项目（md-to-lark） | `${DEV_HOME}/Documents/github/md-to-lark/` |
 | 现有 mowen skill | `${DEV_HOME}/Downloads/skills/mowen/` |
-| 墨问 API 文档 | `https://mowen.apifox.cn/` |
+| 墨问 API 在线文档 | `https://mowen.apifox.cn/` |
+| 墨问 API 本地文档 | `docs/api/README.md` |
 | 墨问 Base URL | `https://open.mowen.cn` |
 | 笔记 URL 格式 | `https://mowen.cn/note/{noteId}` |
 
