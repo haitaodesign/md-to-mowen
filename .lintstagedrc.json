@@ -1,4 +1,4 @@
 {
-  "*.{ts,tsx,js,mjs,json,md}": ["prettier --check"],
+  "*.{ts,tsx,js,mjs,json,md}": ["prettier --write"],
   "**/*": ["node scripts/lint-pii.mjs --staged"]
 }
