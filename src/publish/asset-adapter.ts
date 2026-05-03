@@ -1,4 +1,4 @@
-import type { MASTDocument, MASTImageBlock } from '../mast/types.js';
+import type { MASTDocument, MASTImageBlock, MASTAudioBlock } from '../mast/types.js';
 import type { MowenClient } from '../mowen/client.js';
 import { uploadLocalFile, uploadRemoteUrl, uploadDataUri } from '../mowen/upload.js';
 import { renderTableToPng } from './table-renderer.js';
@@ -26,16 +26,64 @@ export async function processAssets(
   const { baseDir = process.cwd(), dryRun = false } = opts;
 
   const imageBlocks = Object.values(doc.blocks).filter((b): b is MASTImageBlock => b.type === 'image');
+  const audioBlocks = Object.values(doc.blocks).filter((b): b is MASTAudioBlock => b.type === 'audio');
 
   // 并发上传，最多 3 个同时进行
-  await concurrentMap(imageBlocks, 3, async (block) => {
+  await concurrentMap([...imageBlocks, ...audioBlocks], 3, async (block) => {
     if (dryRun) {
       block.uuid = `dry-run-${block.id}`;
       return;
     }
 
-    block.uuid = await uploadBlock(block, client, baseDir);
+    if (block.type === 'audio') {
+      block.uuid = await uploadAudioBlock(block, client, baseDir);
+    } else {
+      block.uuid = await uploadBlock(block, client, baseDir);
+    }
   });
+}
+
+async function uploadAudioBlock(block: MASTAudioBlock, client: MowenClient, baseDir: string): Promise<string> {
+  const src = block.src;
+
+  // 远程 URL
+  if (src.startsWith('http://') || src.startsWith('https://')) {
+    return client.uploadViaUrl(2, src);
+  }
+
+  // 本地路径
+  const { readFile } = await import('fs/promises');
+  const { resolve, isAbsolute, basename } = await import('path');
+  const absPath = isAbsolute(src) ? src : resolve(baseDir, src);
+  const fileName = basename(absPath);
+  const fileBuffer = await readFile(absPath);
+  const form = await client.uploadPrepare(2, fileName);
+
+  await withRetry(async () => {
+    const formData = new FormData();
+    const fields = [
+      'key',
+      'policy',
+      'callback',
+      'success_action_status',
+      'x-oss-credential',
+      'x-oss-date',
+      'x-oss-meta-mo-uid',
+      'x-oss-signature',
+      'x-oss-signature-version',
+      'x:file_id',
+      'x:file_name',
+      'x:file_uid',
+    ] as const;
+    for (const field of fields) {
+      formData.append(field, (form as Record<string, string>)[field]);
+    }
+    formData.append('file', new Blob([fileBuffer]), fileName);
+    const res = await fetch(form.endpoint, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error(`OSS upload failed: ${res.status}`);
+  });
+
+  return form['x:file_id'];
 }
 
 async function uploadBlock(block: MASTImageBlock, client: MowenClient, baseDir: string): Promise<string> {

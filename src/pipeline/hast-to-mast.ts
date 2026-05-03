@@ -6,6 +6,7 @@ import type {
   MASTParagraphBlock,
   MASTQuoteBlock,
   MASTImageBlock,
+  MASTAudioBlock,
   MASTInlineNode,
   MASTTextRun,
   MASTInlineMarks,
@@ -162,12 +163,25 @@ function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
 
   // ── 段落 ──────────────────────────────────────────────────────────────────
   if (tag === 'p') {
-    // 检查段落内是否只有一个 img（独立图片）
+    // 检查段落内是否只有一个 img（独立图片或音频占位）
     const imgChild = node.children.find((c) => isElement(c) && (c as Element).tagName === 'img') as Element | undefined;
 
     if (imgChild) {
       const src = (imgChild.properties?.src as string) ?? '';
       const alt = (imgChild.properties?.alt as string) ?? '';
+
+      // 音频约定：alt 以 "audio:" 开头，其余部分为 show-note 文本
+      if (alt.startsWith('audio:')) {
+        const showNote = alt.slice('audio:'.length).trim();
+        const block: MASTAudioBlock = {
+          id: newId(),
+          type: 'audio',
+          src,
+          showNote,
+        };
+        return [block];
+      }
+
       const block: MASTImageBlock = {
         id: newId(),
         type: 'image',

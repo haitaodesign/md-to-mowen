@@ -8,7 +8,7 @@ export interface NoteAtomDoc {
   content: NoteAtomBlockNode[];
 }
 
-export type NoteAtomBlockNode = NoteAtomParagraph | NoteAtomQuote | NoteAtomImage;
+export type NoteAtomBlockNode = NoteAtomParagraph | NoteAtomQuote | NoteAtomImage | NoteAtomAudio;
 
 export interface NoteAtomParagraph {
   type: 'paragraph';
@@ -29,6 +29,14 @@ export interface NoteAtomImage {
   };
 }
 
+export interface NoteAtomAudio {
+  type: 'audio';
+  attrs: {
+    'audio-uuid': string;
+    'show-note': string;
+  };
+}
+
 export interface NoteAtomTextNode {
   type: 'text';
   text: string;
@@ -40,4 +48,5 @@ export type NoteAtomMark =
   | { type: 'italic' }
   | { type: 'code' }
   | { type: 'strikethrough' }
+  | { type: 'highlight' }
   | { type: 'link'; attrs: { href: string } };

@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mdToHast } from '../../src/pipeline/md-to-hast.js';
 import { hastToMast, _resetIdCounter } from '../../src/pipeline/hast-to-mast.js';
-import type { MASTDocument, MASTParagraphBlock, MASTQuoteBlock, MASTImageBlock } from '../../src/mast/types.js';
+import type {
+  MASTDocument,
+  MASTParagraphBlock,
+  MASTQuoteBlock,
+  MASTImageBlock,
+  MASTAudioBlock,
+} from '../../src/mast/types.js';
 
 // 辅助：将 markdown 直接转为 MAST
 function parse(md: string): MASTDocument {
@@ -265,6 +271,35 @@ describe('表格', () => {
     const img = topBlocks(doc)[0] as MASTImageBlock;
     expect(img.src).toContain('名称');
     expect(img.src).toContain('foo');
+  });
+});
+
+// ── 音频 ───────────────────────────────────────────────────────────────────────
+
+describe('音频', () => {
+  it('alt 以 "audio:" 开头 → MASTAudioBlock', () => {
+    const doc = parse('![audio: 00:00 开场\n01:00 结尾](./assets/test.mp3)');
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(1);
+    const audio = blocks[0] as MASTAudioBlock;
+    expect(audio.type).toBe('audio');
+    expect(audio.src).toBe('./assets/test.mp3');
+    expect(audio.showNote).toBe('00:00 开场\n01:00 结尾');
+    expect(audio.uuid).toBeUndefined();
+  });
+
+  it('showNote 为空字符串时也能解析', () => {
+    const doc = parse('![audio:](./assets/test.mp3)');
+    const audio = topBlocks(doc)[0] as MASTAudioBlock;
+    expect(audio.type).toBe('audio');
+    expect(audio.showNote).toBe('');
+  });
+
+  it('普通 alt 不触发音频解析', () => {
+    const doc = parse('![普通图片](./assets/test.png)');
+    const img = topBlocks(doc)[0] as MASTImageBlock;
+    expect(img.type).toBe('image');
+    expect(img.alt).toBe('普通图片');
   });
 });
 

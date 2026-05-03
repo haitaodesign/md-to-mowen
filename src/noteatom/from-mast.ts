@@ -2,6 +2,7 @@ import type {
   MASTDocument,
   MASTBlockNode,
   MASTImageBlock,
+  MASTAudioBlock,
   MASTParagraphBlock,
   MASTQuoteBlock,
   MASTInlineMarks,
@@ -11,6 +12,7 @@ import type {
   NoteAtomBlockNode,
   NoteAtomParagraph,
   NoteAtomImage,
+  NoteAtomAudio,
   NoteAtomTextNode,
   NoteAtomMark,
 } from './types.js';
@@ -41,6 +43,8 @@ function convertBlock(block: MASTBlockNode, doc: MASTDocument): NoteAtomBlockNod
       return [convertQuote(block, doc)];
     case 'image':
       return [convertImage(block)];
+    case 'audio':
+      return [convertAudio(block)];
   }
 }
 
@@ -83,6 +87,19 @@ function convertImage(block: MASTImageBlock): NoteAtomImage {
       uuid: block.uuid,
       alt: block.alt,
       align: block.align,
+    },
+  };
+}
+
+function convertAudio(block: MASTAudioBlock): NoteAtomAudio {
+  if (!block.uuid) {
+    throw new Error(`MASTAudioBlock ${block.id} has no uuid — run asset processing before serialization`);
+  }
+  return {
+    type: 'audio',
+    attrs: {
+      'audio-uuid': block.uuid,
+      'show-note': block.showNote,
     },
   };
 }

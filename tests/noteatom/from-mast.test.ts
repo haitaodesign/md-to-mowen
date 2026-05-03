@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mastToNoteAtom } from '../../src/noteatom/from-mast.js';
 import type { MASTDocument } from '../../src/mast/types.js';
-import type { NoteAtomParagraph, NoteAtomQuote, NoteAtomImage } from '../../src/noteatom/types.js';
+import type { NoteAtomParagraph, NoteAtomQuote, NoteAtomImage, NoteAtomAudio } from '../../src/noteatom/types.js';
 
 function makeDoc(blocks: Record<string, any>, topLevel: string[]): MASTDocument {
   return { blocks, topLevel } as MASTDocument;
@@ -158,8 +158,63 @@ describe('图片序列化', () => {
   });
 });
 
+describe('音频序列化', () => {
+  it('audio with uuid → NoteAtomAudio', () => {
+    const doc = makeDoc(
+      {
+        b_audio: {
+          id: 'b_audio',
+          type: 'audio',
+          src: './assets/test.mp3',
+          uuid: 'audio-file-id',
+          showNote: '00:00 开场\n01:00 结尾',
+        },
+      },
+      ['b_audio'],
+    );
+    const na = mastToNoteAtom(doc);
+    const audio = na.content[0] as NoteAtomAudio;
+    expect(audio.type).toBe('audio');
+    expect(audio.attrs['audio-uuid']).toBe('audio-file-id');
+    expect(audio.attrs['show-note']).toBe('00:00 开场\n01:00 结尾');
+  });
+
+  it('audio without uuid → throws', () => {
+    const doc = makeDoc(
+      {
+        b_audio: {
+          id: 'b_audio',
+          type: 'audio',
+          src: './assets/test.mp3',
+          showNote: '',
+        },
+      },
+      ['b_audio'],
+    );
+    expect(() => mastToNoteAtom(doc)).toThrow('no uuid');
+  });
+
+  it('show-note 为空字符串时正常序列化', () => {
+    const doc = makeDoc(
+      {
+        b_audio: {
+          id: 'b_audio',
+          type: 'audio',
+          src: './assets/test.mp3',
+          uuid: 'audio-id',
+          showNote: '',
+        },
+      },
+      ['b_audio'],
+    );
+    const na = mastToNoteAtom(doc);
+    const audio = na.content[0] as NoteAtomAudio;
+    expect(audio.attrs['show-note']).toBe('');
+  });
+});
+
 describe('综合文档', () => {
-  it('混合块顺序保持一致', () => {
+  it('混合块顺序保持一致（含音频）', () => {
     const doc = makeDoc(
       {
         b_1: { id: 'b_1', type: 'paragraph', content: [{ type: 'text', text: '标题' }] },
@@ -173,12 +228,20 @@ describe('综合文档', () => {
           alt: '',
           align: 'center',
         },
+        b_5: {
+          id: 'b_5',
+          type: 'audio',
+          src: 'y',
+          uuid: 'audio-uuid-1',
+          showNote: '00:00 开始',
+        },
       },
-      ['b_1', 'b_2', 'b_4'],
+      ['b_1', 'b_2', 'b_4', 'b_5'],
     );
     const na = mastToNoteAtom(doc);
     expect(na.content[0].type).toBe('paragraph');
     expect(na.content[1].type).toBe('quote');
     expect(na.content[2].type).toBe('image');
+    expect(na.content[3].type).toBe('audio');
   });
 });

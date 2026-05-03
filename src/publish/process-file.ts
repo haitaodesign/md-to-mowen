@@ -35,6 +35,7 @@ export interface PipelineStats {
   quotes: number;
   images: number;
   tables: number;
+  audios: number;
   totalBlocks: number;
   /** dry-run 时为 0 */
   uploadedAssets: number;
@@ -99,6 +100,7 @@ function collectStats(mast: MASTDocument, dryRun: boolean): PipelineStats {
   let quotes = 0;
   let images = 0;
   let tables = 0;
+  let audios = 0;
 
   for (const block of Object.values(mast.blocks)) {
     if (block.type === 'paragraph') paragraphs++;
@@ -106,7 +108,7 @@ function collectStats(mast: MASTDocument, dryRun: boolean): PipelineStats {
     else if (block.type === 'image') {
       if (block.isTable) tables++;
       else images++;
-    }
+    } else if (block.type === 'audio') audios++;
   }
 
   return {
@@ -114,8 +116,9 @@ function collectStats(mast: MASTDocument, dryRun: boolean): PipelineStats {
     quotes,
     images,
     tables,
-    totalBlocks: paragraphs + quotes + images + tables,
-    uploadedAssets: dryRun ? 0 : images + tables,
+    audios,
+    totalBlocks: paragraphs + quotes + images + tables + audios,
+    uploadedAssets: dryRun ? 0 : images + tables + audios,
   };
 }
 
@@ -129,8 +132,9 @@ function printDryRunReport(filePath: string, stats: PipelineStats, noteAtom: Not
   console.log(`  引用块：    ${stats.quotes}`);
   console.log(`  图片块：    ${stats.images}`);
   console.log(`  表格块：    ${stats.tables}`);
+  console.log(`  音频块：    ${stats.audios}`);
   console.log(`  总块数：    ${stats.totalBlocks}`);
-  console.log(`  待上传资源：${stats.images + stats.tables}（dry-run 跳过）`);
+  console.log(`  待上传资源：${stats.images + stats.tables + stats.audios}（dry-run 跳过）`);
   console.log(`\nNoteAtom 预览（前 3 个块）：`);
   const preview = noteAtom.content.slice(0, 3);
   console.log(JSON.stringify(preview, null, 2));

@@ -7,7 +7,7 @@
 
 ## 1. 项目概述
 
-**md-to-mowen** 是一个 TypeScript/Node.js CLI 工具，通过墨问开放 API 将 Markdown（GFM）转换为墨问笔记。它遵循与 `md-to-lark` 相同的工程模式——带有中间 AST 的类型化流水线、阶段缓存、资源上传以及双向格式支持。
+**md-to-mowen** 是一个 TypeScript/Node.js CLI 工具，通过墨问开放 API 将 Markdown（GFM）转换为墨问笔记。它遵循带有中间 AST 的类型化流水线、阶段缓存、资源上传以及双向格式支持。
 
 ### 目标
 
