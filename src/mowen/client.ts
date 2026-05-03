@@ -23,8 +23,9 @@ export interface UploadPrepareResponse {
 }
 
 export interface UploadUrlResponse {
-  fileId: string;
-  fileUrl: string;
+  file: {
+    fileId: string;
+  };
 }
 
 export type FileType = 1 | 2 | 3; // 1=图片, 2=音频, 3=PDF
@@ -86,7 +87,7 @@ export class MowenClient {
       url,
       ...(fileName ? { fileName } : {}),
     });
-    return res.fileId;
+    return res.file.fileId;
   }
 
   /** 创建笔记，返回 noteId */

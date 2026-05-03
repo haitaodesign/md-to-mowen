@@ -1,7 +1,24 @@
 import { readFile } from 'fs/promises';
-import { basename } from 'path';
+import { basename, extname } from 'path';
 import type { MowenClient, UploadForm } from './client.js';
 import { withRetry } from '../shared/retry.js';
+
+const MIME_MAP: Record<string, string> = {
+  gif: 'image/gif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  mp4: 'audio/mp4',
+  pdf: 'application/pdf',
+};
+
+function mimeFromFileName(fileName: string): string {
+  const ext = extname(fileName).slice(1).toLowerCase();
+  return MIME_MAP[ext] ?? 'application/octet-stream';
+}
 
 /**
  * 上传本地图片文件，返回 fileId。
@@ -68,7 +85,7 @@ async function ossUpload(form: UploadForm, fileBuffer: Buffer, fileName: string)
       formData.append(field, form[field]);
     }
 
-    formData.append('file', new Blob([fileBuffer]), fileName);
+    formData.append('file', new Blob([fileBuffer], { type: mimeFromFileName(fileName) }), fileName);
 
     const res = await fetch(form.endpoint, { method: 'POST', body: formData });
     if (!res.ok) {

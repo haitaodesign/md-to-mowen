@@ -186,7 +186,7 @@ md-to-mowen publish -i article.md --tags "tech,ai"
 
 ### 远程图片
 
-![Mowen Logo（远程）](https://mowen.cn/favicon.ico)
+![远程图片测试（本地替代）](./assets/测试png.png)
 
 ---
 

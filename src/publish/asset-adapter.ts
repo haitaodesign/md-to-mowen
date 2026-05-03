@@ -3,7 +3,24 @@ import type { MowenClient } from '../mowen/client.js';
 import { uploadLocalFile, uploadRemoteUrl, uploadDataUri } from '../mowen/upload.js';
 import { renderTableToPng } from './table-renderer.js';
 import { withRetry } from '../shared/retry.js';
-import { basename } from 'path';
+import { extname } from 'path';
+
+const MIME_MAP: Record<string, string> = {
+  gif: 'image/gif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  mp4: 'audio/mp4',
+  pdf: 'application/pdf',
+};
+
+function mimeFromExt(fileName: string): string {
+  const ext = extname(fileName).slice(1).toLowerCase();
+  return MIME_MAP[ext] ?? 'application/octet-stream';
+}
 
 export interface AssetAdapterOptions {
   /** 相对路径图片的基准目录（通常为 Markdown 文件所在目录） */
@@ -51,10 +68,11 @@ async function uploadAudioBlock(block: MASTAudioBlock, client: MowenClient, base
     return client.uploadViaUrl(2, src);
   }
 
-  // 本地路径
+  // 本地路径；remark-rehype 会对中文路径做 URL 编码，需先解码
   const { readFile } = await import('fs/promises');
   const { resolve, isAbsolute, basename } = await import('path');
-  const absPath = isAbsolute(src) ? src : resolve(baseDir, src);
+  const decodedSrc = decodeURIComponent(src);
+  const absPath = isAbsolute(decodedSrc) ? decodedSrc : resolve(baseDir, decodedSrc);
   const fileName = basename(absPath);
   const fileBuffer = await readFile(absPath);
   const form = await client.uploadPrepare(2, fileName);
@@ -78,7 +96,7 @@ async function uploadAudioBlock(block: MASTAudioBlock, client: MowenClient, base
     for (const field of fields) {
       formData.append(field, (form as Record<string, string>)[field]);
     }
-    formData.append('file', new Blob([fileBuffer]), fileName);
+    formData.append('file', new Blob([fileBuffer], { type: mimeFromExt(fileName) }), fileName);
     const res = await fetch(form.endpoint, { method: 'POST', body: formData });
     if (!res.ok) throw new Error(`OSS upload failed: ${res.status}`);
   });
@@ -105,9 +123,10 @@ async function uploadBlock(block: MASTImageBlock, client: MowenClient, baseDir: 
     return uploadRemoteUrl(src, client);
   }
 
-  // 本地路径（绝对或相对）
+  // 本地路径（绝对或相对）；remark-rehype 会对中文路径做 URL 编码，需先解码
   const { resolve, isAbsolute } = await import('path');
-  const absPath = isAbsolute(src) ? src : resolve(baseDir, src);
+  const decodedSrc = decodeURIComponent(src);
+  const absPath = isAbsolute(decodedSrc) ? decodedSrc : resolve(baseDir, decodedSrc);
   return uploadLocalFile(absPath, client);
 }
 
@@ -148,14 +167,19 @@ async function uploadPngBuffer(buffer: Buffer, client: MowenClient): Promise<str
   return form['x:file_id'];
 }
 
-/** 限制并发数的 map */
-async function concurrentMap<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
-  const queue = [...items];
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (queue.length > 0) {
-      const item = queue.shift()!;
-      await fn(item);
+/**
+ * 串行上传，每次上传后等待 1.1s 以遵守墨问 API 1次/秒 的限频要求。
+ * 原并发方案在 10 个资源时会触发 429，改为串行+间隔。
+ */
+async function concurrentMap<T>(items: T[], _concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+  for (let i = 0; i < items.length; i++) {
+    await fn(items[i]);
+    if (i < items.length - 1) {
+      await sleep(1100);
     }
-  });
-  await Promise.all(workers);
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
