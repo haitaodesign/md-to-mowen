@@ -44,10 +44,7 @@ interface NoteAtomDoc {
 ### 块节点类型
 
 ```typescript
-type NoteAtomBlockNode =
-  | NoteAtomParagraph
-  | NoteAtomQuote
-  | NoteAtomImage;
+type NoteAtomBlockNode = NoteAtomParagraph | NoteAtomQuote | NoteAtomImage;
 
 // Paragraph：通用文本容器
 interface NoteAtomParagraph {
@@ -65,7 +62,7 @@ interface NoteAtomQuote {
 interface NoteAtomImage {
   type: 'image';
   attrs: {
-    uuid: string;                          // 上传 API 返回的 fileId
+    uuid: string; // 上传 API 返回的 fileId
     alt: string;
     align: 'left' | 'center' | 'right';
   };
@@ -93,7 +90,7 @@ type NoteAtomMark =
 
 ### 关键约束
 
-1. **无原生标题** — H1/H2 映射为 `paragraph` + `bold` 标记；H3+ 映射为普通 `paragraph`+ `bold` 标记
+1. **无原生标题** — H1–H6 全部映射为 `paragraph` + `bold` 标记
 2. **无原生列表** — 列表项映射为带 `• ` 或 `N. ` 前缀文本的 `paragraph`
 3. **无原生代码块** — 围栏代码块映射为每行带 `code` 标记的 `paragraph` 节点，或渲染为图片
 4. **无原生表格** — 表格必须渲染为 PNG 并作为 `image` 节点插入
@@ -103,29 +100,30 @@ type NoteAtomMark =
 
 ## 3. Markdown → NoteAtom 映射
 
-| Markdown 元素 | NoteAtom 输出 | 备注 |
-|---|---|---|
-| `# H1` | `paragraph` + `bold` 标记 | 标题层级丢失 |
-| `## H2` | `paragraph` + `bold` 标记 | |
-| `### H3` | `paragraph`（普通） | |
-| `#### H4+` | `paragraph`（普通） | |
-| `- item` | 带 `• ` 前缀的 `paragraph` | 嵌套列表：缩进前缀 |
-| `1. item` | 带 `1. ` 前缀的 `paragraph` | 每个列表独立计数 |
-| `> quote` | `quote` 节点 | 嵌套引用：展平处理 |
-| `**bold**` | `text` + `bold` 标记 | |
-| `*italic*` | `text` + `italic` 标记 | |
-| `` `code` `` | `text` + `code` 标记 | |
-| `~~strike~~` | `text` + `strikethrough` 标记 | |
-| `[text](url)` | `text` + `link` 标记 | |
-| `![alt](src)` | `image` 节点 | 需先上传 |
-| ` ```lang\ncode\n``` ` | 每行 `paragraph` + `code` 标记 | 或渲染为图片 |
-| `\| table \|` | `image` 节点 | Playwright 渲染 → 上传 |
-| `---` | 空 `paragraph` | |
-| 空行 | 空 `paragraph` | |
+| Markdown 元素          | NoteAtom 输出                  | 备注                   |
+| ---------------------- | ------------------------------ | ---------------------- |
+| `# H1`                 | `paragraph` + `bold` 标记      | 标题层级丢失           |
+| `## H2`                | `paragraph` + `bold` 标记      |                        |
+| `### H3`               | `paragraph` + `bold` 标记      |                        |
+| `#### H4+`             | `paragraph` + `bold` 标记      |                        |
+| `- item`               | 带 `• ` 前缀的 `paragraph`     | 嵌套列表：缩进前缀     |
+| `1. item`              | 带 `1. ` 前缀的 `paragraph`    | 每个列表独立计数       |
+| `> quote`              | `quote` 节点                   | 嵌套引用：展平处理     |
+| `**bold**`             | `text` + `bold` 标记           |                        |
+| `*italic*`             | `text` + `italic` 标记         |                        |
+| `` `code` ``           | `text` + `code` 标记           |                        |
+| `~~strike~~`           | `text` + `strikethrough` 标记  |                        |
+| `[text](url)`          | `text` + `link` 标记           |                        |
+| `![alt](src)`          | `image` 节点                   | 需先上传               |
+| ` ```lang\ncode\n``` ` | 每行 `paragraph` + `code` 标记 | 或渲染为图片           |
+| `\| table \|`          | `image` 节点                   | Playwright 渲染 → 上传 |
+| `---`                  | 空 `paragraph`                 |                        |
+| 空行                   | 空 `paragraph`                 |                        |
 
 ### 行内标记优先级（序列化回 Markdown 时）
 
 NoteAtom → Markdown 转换时，按以下顺序应用标记以避免嵌套问题：
+
 1. `code`（最先包裹，内部不含其他标记）
 2. `strikethrough`
 3. `bold`
@@ -176,10 +174,7 @@ export interface MASTDocument {
   topLevel: MASTBlockId[];
 }
 
-export type MASTBlockNode =
-  | MASTParagraphBlock
-  | MASTQuoteBlock
-  | MASTImageBlock;
+export type MASTBlockNode = MASTParagraphBlock | MASTQuoteBlock | MASTImageBlock;
 
 export interface MASTParagraphBlock {
   id: MASTBlockId;
@@ -190,17 +185,17 @@ export interface MASTParagraphBlock {
 export interface MASTQuoteBlock {
   id: MASTBlockId;
   type: 'quote';
-  children: MASTBlockId[];   // 段落子节点的 ID
+  children: MASTBlockId[]; // 段落子节点的 ID
 }
 
 export interface MASTImageBlock {
   id: MASTBlockId;
   type: 'image';
-  src: string;               // 本地路径或远程 URL（上传前）
-  uuid?: string;             // 上传后的 fileId（资源阶段后）
+  src: string; // 本地路径或远程 URL（上传前）
+  uuid?: string; // 上传后的 fileId（资源阶段后）
   alt: string;
   align: 'left' | 'center' | 'right';
-  isTable?: boolean;         // 若由 markdown 表格渲染则为 true
+  isTable?: boolean; // 若由 markdown 表格渲染则为 true
 }
 
 export type MASTInlineNode = MASTTextRun;
@@ -216,7 +211,7 @@ export interface MASTInlineMarks {
   italic?: boolean;
   code?: boolean;
   strikethrough?: boolean;
-  link?: string;             // href
+  link?: string; // href
 }
 ```
 
@@ -273,6 +268,7 @@ md-to-mowen/
 ## 7. 墨问 API 集成
 
 > API 完整文档见：
+>
 > - **在线文档**：<https://mowen.apifox.cn/>
 > - **本地文档**：[docs/api/README.md](api/README.md)（含接口详情、NoteAtom 格式、上传流程、错误码）
 
@@ -289,7 +285,7 @@ interface MowenClient {
   uploadViaUrl(fileType: FileType, url: string, fileName?: string): Promise<UploadedFile>;
 }
 
-type FileType = 1 | 2 | 3;  // 1=图片, 2=音频, 3=PDF
+type FileType = 1 | 2 | 3; // 1=图片, 2=音频, 3=PDF
 ```
 
 ---
@@ -319,6 +315,7 @@ Playwright 无头 Chromium → PNG
 `${DEV_HOME}/Downloads/skills/mowen/` 中现有的 `table2image_pro.py` 有完整可用的实现，将其 HTML/CSS 模板移植到 TypeScript。
 
 关键 CSS 参数：
+
 - 宽度：1000px，高度：auto（200–2000px）
 - 表头：深蓝渐变 `#1e3a5f → #2d4a6f`，白色文字
 - 斑马纹：`#fafbfc / #ffffff`
@@ -349,16 +346,17 @@ async function renderTableToPng(html: string): Promise<Buffer> {
 ### 检测
 
 在 HAST → MAST 转换过程中，收集所有图片来源：
+
 - `<img src="...">` 元素
 - 独立图片段落
 
 ### 上传策略
 
-| 来源类型 | 策略 |
-|---|---|
-| 本地文件路径 | 读取文件 → 两步 OSS 上传 |
+| 来源类型      | 策略                              |
+| ------------- | --------------------------------- |
+| 本地文件路径  | 读取文件 → 两步 OSS 上传          |
 | 远程 HTTP URL | 使用 `/upload/url` 接口（更简单） |
-| Data URI | 解码 → 两步 OSS 上传 |
+| Data URI      | 解码 → 两步 OSS 上传              |
 
 ### 更新
 
@@ -404,6 +402,7 @@ MOWEN_API_KEY=your_api_key_here
 ### D1：MAST 作为中间层
 
 尽管 NoteAtom 结构简单，MAST 仍将解析与序列化解耦，支持：
+
 - 序列化前的资源上传更新
 - 双向转换（NoteAtom → MAST → Markdown）
 - 独立对每个转换阶段进行单元测试
@@ -422,7 +421,7 @@ MOWEN_API_KEY=your_api_key_here
 
 ### D5：标题层级展平
 
-H1/H2 → 粗体段落，H3+ → 普通段落。这是已知的有损映射，需明确记录。反向转换（NoteAtom → Markdown）无法恢复标题层级。
+H1–H6 全部 → 粗体段落。这是已知的有损映射，需明确记录。反向转换（NoteAtom → Markdown）无法恢复标题层级。
 
 ### D6：保留链接标记
 
@@ -444,25 +443,25 @@ MAST → Markdown (src/mast/to-markdown.ts)
 
 ### NoteAtom → MAST 规则
 
-| NoteAtom | MAST |
-|---|---|
-| `paragraph` + `bold` 文本 | `paragraph`（标题层级丢失） |
+| NoteAtom                   | MAST                              |
+| -------------------------- | --------------------------------- |
+| `paragraph` + `bold` 文本  | `paragraph`（标题层级丢失）       |
 | 带 `• ` 前缀的 `paragraph` | `paragraph`（列表标记保留为文本） |
-| `quote` | `quote` |
-| `image` | 带 uuid 的 `image`（无本地 src） |
+| `quote`                    | `quote`                           |
+| `image`                    | 带 uuid 的 `image`（无本地 src）  |
 
 ### MAST → Markdown 规则
 
-| MAST | Markdown |
-|---|---|
-| `paragraph` | `\n\ntext\n\n` |
-| `quote` | `> text` |
+| MAST                       | Markdown                               |
+| -------------------------- | -------------------------------------- |
+| `paragraph`                | `\n\ntext\n\n`                         |
+| `quote`                    | `> text`                               |
 | `image`（有 uuid，无 src） | `![alt](https://mowen.cn/file/{uuid})` |
-| `text` + `bold` | `**text**` |
-| `text` + `italic` | `*text*` |
-| `text` + `code` | `` `text` `` |
-| `text` + `strikethrough` | `~~text~~` |
-| `text` + `link` | `[text](url)` |
+| `text` + `bold`            | `**text**`                             |
+| `text` + `italic`          | `*text*`                               |
+| `text` + `code`            | `` `text` ``                           |
+| `text` + `strikethrough`   | `~~text~~`                             |
+| `text` + `link`            | `[text](url)`                          |
 
 ---
 
@@ -497,21 +496,21 @@ MAST → Markdown (src/mast/to-markdown.ts)
 
 ## 14. 参考文件
 
-| 资源 | 路径 |
-|---|---|
+| 资源                   | 路径                                       |
+| ---------------------- | ------------------------------------------ |
 | 参考项目（md-to-lark） | `${DEV_HOME}/Documents/github/md-to-lark/` |
-| 现有 mowen skill | `${DEV_HOME}/Downloads/skills/mowen/` |
-| 墨问 API 在线文档 | `https://mowen.apifox.cn/` |
-| 墨问 API 本地文档 | `docs/api/README.md` |
-| 墨问 Base URL | `https://open.mowen.cn` |
-| 笔记 URL 格式 | `https://mowen.cn/note/{noteId}` |
+| 现有 mowen skill       | `${DEV_HOME}/Downloads/skills/mowen/`      |
+| 墨问 API 在线文档      | `https://mowen.apifox.cn/`                 |
+| 墨问 API 本地文档      | `docs/api/README.md`                       |
+| 墨问 Base URL          | `https://open.mowen.cn`                    |
+| 笔记 URL 格式          | `https://mowen.cn/note/{noteId}`           |
 
 ### 现有 skill 中需移植/参考的关键文件
 
-| 文件 | 移植内容 |
-|---|---|
-| `md2noteatom.py` | 转换逻辑（用 TypeScript 重写，支持完整标记） |
-| `table2image_pro.py` | 表格渲染的 HTML/CSS 模板 |
-| `upload_image.sh` | OSS multipart 上传流程 |
-| `publish_lint.py` | 质量检查（可选，实现为警告） |
-| `mowen.sh` | API 调用模式 |
+| 文件                 | 移植内容                                     |
+| -------------------- | -------------------------------------------- |
+| `md2noteatom.py`     | 转换逻辑（用 TypeScript 重写，支持完整标记） |
+| `table2image_pro.py` | 表格渲染的 HTML/CSS 模板                     |
+| `upload_image.sh`    | OSS multipart 上传流程                       |
+| `publish_lint.py`    | 质量检查（可选，实现为警告）                 |
+| `mowen.sh`           | API 调用模式                                 |
