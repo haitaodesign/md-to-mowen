@@ -48,7 +48,8 @@ export async function uploadDataUri(dataUri: string, client: MowenClient): Promi
   const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw new Error(`Invalid data URI: ${dataUri.slice(0, 40)}`);
 
-  const [, mime, b64] = match;
+  const mime = match[1] ?? 'image/png';
+  const b64 = match[2] ?? '';
   const ext = mime.split('/')[1] ?? 'png';
   const fileName = `image.${ext}`;
   const buffer = Buffer.from(b64, 'base64');

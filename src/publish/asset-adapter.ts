@@ -94,7 +94,7 @@ async function uploadAudioBlock(block: MASTAudioBlock, client: MowenClient, base
       'x:file_uid',
     ] as const;
     for (const field of fields) {
-      formData.append(field, (form as Record<string, string>)[field]);
+      formData.append(field, (form as unknown as Record<string, string>)[field]);
     }
     formData.append('file', new Blob([fileBuffer], { type: mimeFromExt(fileName) }), fileName);
     const res = await fetch(form.endpoint, { method: 'POST', body: formData });
@@ -156,7 +156,7 @@ async function uploadPngBuffer(buffer: Buffer, client: MowenClient): Promise<str
     ] as const;
 
     for (const field of fields) {
-      formData.append(field, (form as Record<string, string>)[field]);
+      formData.append(field, (form as unknown as Record<string, string>)[field]);
     }
     formData.append('file', new Blob([buffer], { type: 'image/png' }), fileName);
 
@@ -173,9 +173,12 @@ async function uploadPngBuffer(buffer: Buffer, client: MowenClient): Promise<str
  */
 async function concurrentMap<T>(items: T[], _concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
   for (let i = 0; i < items.length; i++) {
-    await fn(items[i]);
-    if (i < items.length - 1) {
-      await sleep(1100);
+    const item = items[i];
+    if (item !== undefined) {
+      await fn(item);
+      if (i < items.length - 1) {
+        await sleep(1100);
+      }
     }
   }
 }

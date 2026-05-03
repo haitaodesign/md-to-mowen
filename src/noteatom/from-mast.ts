@@ -26,8 +26,10 @@ export function mastToNoteAtom(doc: MASTDocument): NoteAtomDoc {
 
   for (const id of doc.topLevel) {
     const block = doc.blocks[id];
-    const nodes = convertBlock(block, doc);
-    content.push(...nodes);
+    if (block) {
+      const nodes = convertBlock(block, doc);
+      content.push(...nodes);
+    }
   }
 
   return { type: 'doc', content };
@@ -60,15 +62,18 @@ function convertQuote(block: MASTQuoteBlock, doc: MASTDocument): NoteAtomBlockNo
 
   for (const childId of block.children) {
     const child = doc.blocks[childId];
+    if (!child) continue;
+
     if (child.type === 'paragraph') {
-      children.push(convertParagraph(child));
+      children.push(convertParagraph(child as MASTParagraphBlock));
     }
     // quote 内嵌套 quote：展平为段落
     else if (child.type === 'quote') {
-      for (const grandChildId of child.children) {
+      const quoteChild = child as MASTQuoteBlock;
+      for (const grandChildId of quoteChild.children) {
         const grandChild = doc.blocks[grandChildId];
-        if (grandChild.type === 'paragraph') {
-          children.push(convertParagraph(grandChild));
+        if (grandChild && grandChild.type === 'paragraph') {
+          children.push(convertParagraph(grandChild as MASTParagraphBlock));
         }
       }
     }

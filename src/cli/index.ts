@@ -36,11 +36,11 @@ program
 
     try {
       const result = await processFile(opts.input, client, {
-        noteId: opts.noteId,
-        tags,
+        ...(opts.noteId ? { noteId: opts.noteId } : {}),
+        ...(tags ? { tags } : {}),
         autoPublish: opts.autoPublish,
         dryRun: opts.dryRun,
-        cacheDir: opts.cacheDir,
+        ...(opts.cacheDir ? { cacheDir: opts.cacheDir } : {}),
       });
 
       if (!result.dryRun) {

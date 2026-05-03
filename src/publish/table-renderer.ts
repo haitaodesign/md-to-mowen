@@ -106,7 +106,7 @@ function parseMarkdownTable(markdown: string): { headers: string[]; rows: string
       .split('|')
       .map((c) => c.trim());
 
-  const headers = parseRow(lines[0]);
+  const headers = parseRow(lines[0] ?? '');
   // lines[1] is the separator row (---|---)
   const rows = lines.slice(2).map(parseRow);
 

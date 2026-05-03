@@ -154,7 +154,7 @@ function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
 
   // ── 标题 ──────────────────────────────────────────────────────────────────
   if (/^h[1-6]$/.test(tag)) {
-    const level = parseInt(tag[1], 10);
+    const level = parseInt(tag[1] ?? '1', 10);
     // H1–H6 全部 → bold paragraph
     const extraMarks: MASTInlineMarks = { bold: true };
     const content = extractInlineContent(node, extraMarks);
@@ -362,7 +362,7 @@ function tableToMarkdown(tableEl: Element): string {
     return r;
   });
 
-  const header = `| ${padded[0].join(' | ')} |`;
+  const header = `| ${(padded[0] ?? []).join(' | ')} |`;
   const separator = `| ${Array(colCount).fill('---').join(' | ')} |`;
   const body = padded.slice(1).map((r) => `| ${r.join(' | ')} |`);
 

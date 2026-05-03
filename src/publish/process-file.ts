@@ -87,7 +87,7 @@ export async function processFile(
     await client.editNote(noteId, noteAtom);
     resultNoteId = noteId;
   } else {
-    resultNoteId = await client.createNote(noteAtom, { autoPublish, tags });
+    resultNoteId = await client.createNote(noteAtom, { autoPublish, tags: tags ?? [] });
   }
 
   const noteUrl = `https://mowen.cn/note/${resultNoteId}`;
