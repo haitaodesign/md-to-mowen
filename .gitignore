@@ -6,3 +6,4 @@ node_modules/
 dist/
 *.tgz
 release-artifacts/
+.DS_Store
