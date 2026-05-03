@@ -24,11 +24,11 @@ POST /api/open/api/v1/note/create
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `body` | NoteAtomDoc | ✅ | 笔记内容，见 [noteatom.md](noteatom.md) |
-| `settings.autoPublish` | boolean | 否 | 是否自动发布（默认 `false`，创建草稿） |
-| `settings.tags` | string[] | 否 | 标签列表 |
+| 字段                   | 类型        | 必填 | 说明                                    |
+| ---------------------- | ----------- | ---- | --------------------------------------- |
+| `body`                 | NoteAtomDoc | ✅   | 笔记内容，见 [noteatom.md](noteatom.md) |
+| `settings.autoPublish` | boolean     | 否   | 是否自动发布（默认 `false`，创建草稿）  |
+| `settings.tags`        | string[]    | 否   | 标签列表                                |
 
 > ⚠️ **重要**：`autoPublish: true` 会**立即公开**笔记。强烈建议保持默认 `false`，创建后再通过「笔记设置」接口控制公开状态。
 
@@ -40,8 +40,8 @@ POST /api/open/api/v1/note/create
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|---|---|---|
+| 字段     | 类型   | 说明                        |
+| -------- | ------ | --------------------------- |
 | `noteId` | string | 笔记 ID，用于后续编辑和设置 |
 
 笔记访问地址：`https://mowen.cn/note/{noteId}`
@@ -65,10 +65,10 @@ POST /api/open/api/v1/note/edit
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `noteId` | string | ✅ | 要编辑的笔记 ID |
-| `body` | NoteAtomDoc | ✅ | 新的笔记内容（**全量替换**） |
+| 字段     | 类型        | 必填 | 说明                         |
+| -------- | ----------- | ---- | ---------------------------- |
+| `noteId` | string      | ✅   | 要编辑的笔记 ID              |
+| `body`   | NoteAtomDoc | ✅   | 新的笔记内容（**全量替换**） |
 
 ### 响应体
 
@@ -102,13 +102,13 @@ POST /api/open/api/v1/note/set
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `noteId` | string | ✅ | 笔记 ID |
-| `section` | integer | ✅ | 设置项类型，目前固定为 `1`（隐私设置） |
-| `settings.privacy.type` | string | ✅ | 隐私类型：`public`（公开）/ `private`（私密）/ `rule`（规则） |
-| `settings.privacy.noShare` | boolean | 否 | 是否禁止分享与转发，默认 `false` |
-| `settings.privacy.expireAt` | integer | 否 | 公开截止时间戳（秒），`0` 表示永久，默认 `0` |
+| 字段                        | 类型    | 必填 | 说明                                                          |
+| --------------------------- | ------- | ---- | ------------------------------------------------------------- |
+| `noteId`                    | string  | ✅   | 笔记 ID                                                       |
+| `section`                   | integer | ✅   | 设置项类型，目前固定为 `1`（隐私设置）                        |
+| `settings.privacy.type`     | string  | ✅   | 隐私类型：`public`（公开）/ `private`（私密）/ `rule`（规则） |
+| `settings.privacy.noShare`  | boolean | 否   | 是否禁止分享与转发，默认 `false`                              |
+| `settings.privacy.expireAt` | integer | 否   | 公开截止时间戳（秒），`0` 表示永久，默认 `0`                  |
 
 ### 响应体
 
@@ -159,10 +159,10 @@ POST /api/open/api/v1/upload/prepare
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `fileType` | integer | ✅ | 文件类型：`1`=图片，`2`=音频，`3`=PDF |
-| `fileName` | string | 否 | 文件名，不填时系统自动生成 |
+| 字段       | 类型    | 必填 | 说明                                  |
+| ---------- | ------- | ---- | ------------------------------------- |
+| `fileType` | integer | ✅   | 文件类型：`1`=图片，`2`=音频，`3`=PDF |
+| `fileName` | string  | 否   | 文件名，不填时系统自动生成            |
 
 ### 响应体
 
@@ -214,11 +214,11 @@ POST /api/open/api/v1/upload/url
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `fileType` | integer | ✅ | 文件类型：`1`=图片，`2`=音频，`3`=PDF |
-| `url` | string | ✅ | 文件的公网 URL |
-| `fileName` | string | 否 | 文件名，不填时系统自动生成 |
+| 字段       | 类型    | 必填 | 说明                                  |
+| ---------- | ------- | ---- | ------------------------------------- |
+| `fileType` | integer | ✅   | 文件类型：`1`=图片，`2`=音频，`3`=PDF |
+| `url`      | string  | ✅   | 文件的公网 URL                        |
+| `fileName` | string  | 否   | 文件名，不填时系统自动生成            |
 
 ### 响应体
 
@@ -246,10 +246,10 @@ POST /api/open/api/v1/upload/url
 }
 ```
 
-| 字段 | 说明 |
-|---|---|
-| `fileId` | 文件 ID，用作 NoteAtom `image` 节点的 `uuid` |
-| `fileUrl` | 文件访问 URL |
-| `thumbnails` | 缩略图 URL 列表 |
-| `hasRisk` | 是否有安全风险 |
-| `extend.image` | 图片额外信息（宽/高/拍摄朝向） |
+| 字段           | 说明                                         |
+| -------------- | -------------------------------------------- |
+| `fileId`       | 文件 ID，用作 NoteAtom `image` 节点的 `uuid` |
+| `fileUrl`      | 文件访问 URL                                 |
+| `thumbnails`   | 缩略图 URL 列表                              |
+| `hasRisk`      | 是否有安全风险                               |
+| `extend.image` | 图片额外信息（宽/高/拍摄朝向）               |

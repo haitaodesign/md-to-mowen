@@ -66,9 +66,7 @@ const WARN_RULES = [
 // ── 工具函数 ───────────────────────────────────────────────────────────────────
 
 function getTrackedFiles(stagedOnly) {
-  const cmd = stagedOnly
-    ? 'git diff --cached --name-only --diff-filter=ACMR'
-    : 'git ls-files';
+  const cmd = stagedOnly ? 'git diff --cached --name-only --diff-filter=ACMR' : 'git ls-files';
   try {
     return execSync(cmd, { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
   } catch {
@@ -97,7 +95,15 @@ function scanLine(filePath, lineNum, line, rules, severity) {
     for (const m of matches) {
       // 可选的额外过滤条件
       if (rule.filter && !rule.filter(m[0])) continue;
-      findings.push({ severity, id: rule.id, name: rule.name, file: filePath, line: lineNum, match: m[0], hint: rule.hint });
+      findings.push({
+        severity,
+        id: rule.id,
+        name: rule.name,
+        file: filePath,
+        line: lineNum,
+        match: m[0],
+        hint: rule.hint,
+      });
     }
   }
   return findings;
@@ -139,7 +145,15 @@ for (const filePath of filesToScan) {
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
     const lineNum = idx + 1;
-    allFindings.push(...scanLine(filePath, lineNum, line, ERROR_RULES.filter((r) => r.regex), 'ERROR'));
+    allFindings.push(
+      ...scanLine(
+        filePath,
+        lineNum,
+        line,
+        ERROR_RULES.filter((r) => r.regex),
+        'ERROR',
+      ),
+    );
     allFindings.push(...scanLine(filePath, lineNum, line, WARN_RULES, 'WARN'));
   });
 }

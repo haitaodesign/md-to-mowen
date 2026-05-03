@@ -6,10 +6,10 @@
 
 ## 两种上传方式
 
-| 方式 | 适用场景 | 接口 |
-|---|---|---|
-| **本地两步 OSS 上传** | 本地文件、Data URI | `upload/prepare` → OSS 直传 |
-| **远程 URL 上传** | 已有公网 URL 的图片 | `upload/url`（一步完成） |
+| 方式                  | 适用场景            | 接口                        |
+| --------------------- | ------------------- | --------------------------- |
+| **本地两步 OSS 上传** | 本地文件、Data URI  | `upload/prepare` → OSS 直传 |
+| **远程 URL 上传**     | 已有公网 URL 的图片 | `upload/url`（一步完成）    |
 
 ---
 
@@ -140,7 +140,7 @@ async function uploadLocalFile(filePath: string, apiKey: string): Promise<string
   const prepareRes = await fetch('https://open.mowen.cn/api/open/api/v1/upload/prepare', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ fileType: 1, fileName }),
@@ -167,7 +167,7 @@ async function uploadRemoteUrl(url: string, apiKey: string): Promise<string> {
   const res = await fetch('https://open.mowen.cn/api/open/api/v1/upload/url', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ fileType: 1, url }),

@@ -34,11 +34,11 @@ Authorization: Bearer <MOWEN_API_KEY>
 
 ## 频率限制
 
-| 操作 | 限制 |
-|---|---|
-| 创建笔记 | 100 次/天 |
+| 操作     | 限制       |
+| -------- | ---------- |
+| 创建笔记 | 100 次/天  |
 | 编辑笔记 | 1000 次/天 |
-| 上传文件 | 200 次/天 |
+| 上传文件 | 200 次/天  |
 
 ---
 
@@ -77,12 +77,12 @@ https://mowen.cn/note/{noteId}
 
 ## API 目录
 
-| 分类 | 接口 | 路径 |
-|---|---|---|
-| 授权 | API-KEY 重置 | `POST /api/open/api/v1/auth/key/reset` |
-| 笔记 | 笔记创建 | `POST /api/open/api/v1/note/create` |
-| 笔记 | 笔记编辑 | `POST /api/open/api/v1/note/edit` |
-| 笔记 | 笔记设置 | `POST /api/open/api/v1/note/set` |
-| 文件上传（本地） | 获取上传授权信息 | `POST /api/open/api/v1/upload/prepare` |
-| 文件上传（本地） | 文件投递（OSS 直传） | `POST {form.endpoint}` |
-| 文件上传（远程） | 基于 URL 上传文件 | `POST /api/open/api/v1/upload/url` |
+| 分类             | 接口                 | 路径                                   |
+| ---------------- | -------------------- | -------------------------------------- |
+| 授权             | API-KEY 重置         | `POST /api/open/api/v1/auth/key/reset` |
+| 笔记             | 笔记创建             | `POST /api/open/api/v1/note/create`    |
+| 笔记             | 笔记编辑             | `POST /api/open/api/v1/note/edit`      |
+| 笔记             | 笔记设置             | `POST /api/open/api/v1/note/set`       |
+| 文件上传（本地） | 获取上传授权信息     | `POST /api/open/api/v1/upload/prepare` |
+| 文件上传（本地） | 文件投递（OSS 直传） | `POST {form.endpoint}`                 |
+| 文件上传（远程） | 基于 URL 上传文件    | `POST /api/open/api/v1/upload/url`     |

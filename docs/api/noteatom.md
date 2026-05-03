@@ -28,7 +28,7 @@ interface NoteAtomDoc {
 ```typescript
 interface NoteAtomParagraph {
   type: 'paragraph';
-  content: NoteAtomTextNode[];  // 行内节点数组
+  content: NoteAtomTextNode[]; // 行内节点数组
 }
 ```
 
@@ -40,7 +40,7 @@ interface NoteAtomParagraph {
 ```typescript
 interface NoteAtomQuote {
   type: 'quote';
-  content: NoteAtomParagraph[];  // 只能包含 paragraph
+  content: NoteAtomParagraph[]; // 只能包含 paragraph
 }
 ```
 
@@ -50,8 +50,8 @@ interface NoteAtomQuote {
 interface NoteAtomImage {
   type: 'image';
   attrs: {
-    uuid: string;                        // 文件上传后获得的 fileId
-    alt: string;                         // 图片描述文字
+    uuid: string; // 文件上传后获得的 fileId
+    alt: string; // 图片描述文字
     align: 'left' | 'center' | 'right'; // 对齐方式
   };
 }
@@ -71,8 +71,8 @@ interface NoteAtomImage {
 ```typescript
 interface NoteAtomTextNode {
   type: 'text';
-  text: string;        // 文本内容
-  marks?: NoteAtomMark[];  // 可选的格式标记
+  text: string; // 文本内容
+  marks?: NoteAtomMark[]; // 可选的格式标记
 }
 ```
 
@@ -91,13 +91,13 @@ type NoteAtomMark =
   | { type: 'link'; attrs: { href: string } };
 ```
 
-| 标记 | 说明 |
-|---|---|
-| `bold` | 粗体 |
-| `italic` | 斜体 |
-| `code` | 行内代码 |
-| `strikethrough` | 删除线 |
-| `link` | 超链接，需要 `attrs.href` |
+| 标记            | 说明                      |
+| --------------- | ------------------------- |
+| `bold`          | 粗体                      |
+| `italic`        | 斜体                      |
+| `code`          | 行内代码                  |
+| `strikethrough` | 删除线                    |
+| `link`          | 超链接，需要 `attrs.href` |
 
 ---
 
@@ -105,15 +105,15 @@ type NoteAtomMark =
 
 墨问不支持以下原生格式，需在转换时处理：
 
-| 原生格式 | 处理方式 |
-|---|---|
+| 原生格式      | 处理方式                                  |
+| ------------- | ----------------------------------------- |
 | 标题（H1/H2） | `paragraph` + `bold` 标记（层级信息丢失） |
-| 标题（H3+） | 普通 `paragraph`（无粗体） |
-| 有序/无序列表 | `paragraph` + 文本前缀（`• ` 或 `1. `） |
-| 代码块 | 每行一个 `paragraph`，文本带 `code` 标记 |
-| 表格 | 渲染为图片后作为 `image` 节点插入 |
-| 分隔线 `---` | 空 `paragraph` |
-| 空行 | 空 `paragraph` |
+| 标题（H3+）   | 普通 `paragraph`（无粗体）                |
+| 有序/无序列表 | `paragraph` + 文本前缀（`• ` 或 `1. `）   |
+| 代码块        | 每行一个 `paragraph`，文本带 `code` 标记  |
+| 表格          | 渲染为图片后作为 `image` 节点插入         |
+| 分隔线 `---`  | 空 `paragraph`                            |
+| 空行          | 空 `paragraph`                            |
 
 ---
 
@@ -125,9 +125,7 @@ type NoteAtomMark =
   "content": [
     {
       "type": "paragraph",
-      "content": [
-        { "type": "text", "text": "标题文字", "marks": [{ "type": "bold" }] }
-      ]
+      "content": [{ "type": "text", "text": "标题文字", "marks": [{ "type": "bold" }] }]
     },
     {
       "type": "paragraph",
