@@ -1,0 +1,78 @@
+import { readFile } from 'fs/promises';
+import { basename } from 'path';
+import type { MowenClient, UploadForm } from './client.js';
+import { withRetry } from '../shared/retry.js';
+
+/**
+ * 上传本地图片文件，返回 fileId。
+ * 使用两步 OSS 上传流程：prepare → multipart POST。
+ */
+export async function uploadLocalFile(filePath: string, client: MowenClient): Promise<string> {
+  const fileName = basename(filePath);
+  const fileBuffer = await readFile(filePath);
+
+  const form = await client.uploadPrepare(1, fileName);
+  await ossUpload(form, fileBuffer, fileName);
+  return form['x:file_id'];
+}
+
+/**
+ * 上传远程 URL 图片，返回 fileId。
+ */
+export async function uploadRemoteUrl(url: string, client: MowenClient): Promise<string> {
+  return client.uploadViaUrl(1, url);
+}
+
+/**
+ * 上传 Data URI 图片，返回 fileId。
+ * 支持 data:image/png;base64,... 格式。
+ */
+export async function uploadDataUri(dataUri: string, client: MowenClient): Promise<string> {
+  const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error(`Invalid data URI: ${dataUri.slice(0, 40)}`);
+
+  const [, mime, b64] = match;
+  const ext = mime.split('/')[1] ?? 'png';
+  const fileName = `image.${ext}`;
+  const buffer = Buffer.from(b64, 'base64');
+
+  const form = await client.uploadPrepare(1, fileName);
+  await ossUpload(form, buffer, fileName);
+  return form['x:file_id'];
+}
+
+/**
+ * OSS multipart 直传（第二步）。
+ */
+async function ossUpload(form: UploadForm, fileBuffer: Buffer, fileName: string): Promise<void> {
+  await withRetry(async () => {
+    const formData = new FormData();
+
+    // 按 API 文档顺序添加所有表单字段（endpoint 除外）
+    const fields: (keyof UploadForm)[] = [
+      'key',
+      'policy',
+      'callback',
+      'success_action_status',
+      'x-oss-credential',
+      'x-oss-date',
+      'x-oss-meta-mo-uid',
+      'x-oss-signature',
+      'x-oss-signature-version',
+      'x:file_id',
+      'x:file_name',
+      'x:file_uid',
+    ];
+
+    for (const field of fields) {
+      formData.append(field, form[field]);
+    }
+
+    formData.append('file', new Blob([fileBuffer]), fileName);
+
+    const res = await fetch(form.endpoint, { method: 'POST', body: formData });
+    if (!res.ok) {
+      throw new Error(`OSS upload failed: ${res.status} ${res.statusText}`);
+    }
+  });
+}

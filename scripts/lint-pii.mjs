@@ -34,8 +34,8 @@ const ERROR_RULES = [
     // 引号包裹的 24 字符以上的串，且必须包含数字（排除纯单词组合的配置 key 名）
     regex: /["'][A-Za-z0-9+/]{24,}["']/g,
     hint: '请将密钥写入 .env，代码中使用 process.env.YOUR_KEY',
-    // 过滤：纯字母（camelCase 配置名）不算 token
-    filter: (match) => /[0-9]/.test(match),
+    // 过滤：纯字母（camelCase 配置名）不算 token；URL 路径（以 / 开头的可读路径）不算 token
+    filter: (match) => /[0-9]/.test(match) && !/^['"]\/[a-z]/.test(match),
   },
   {
     id: 'P3',
