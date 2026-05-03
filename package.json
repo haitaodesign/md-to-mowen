@@ -9,6 +9,11 @@
   "files": [
     "dist"
   ],
+  "exports": {
+    ".": "./dist/publish/index.js",
+    "./publish": "./dist/publish/index.js",
+    "./noteatom": "./dist/noteatom/index.js"
+  },
   "scripts": {
     "lint:pii": "node scripts/lint-pii.mjs",
     "lint": "npm run lint:pii && prettier --check .",

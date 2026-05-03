@@ -2,12 +2,17 @@ import { Command } from 'commander';
 import { config } from 'dotenv';
 import { processFile } from '../publish/process-file.js';
 import { MowenClient } from '../mowen/client.js';
+import { noteAtomToMast } from '../noteatom/to-mast.js';
+import { mastToMarkdown } from '../mast/to-markdown.js';
+import { readFile, writeFile } from 'fs/promises';
 
 config(); // 加载 .env
 
 const program = new Command();
 
 program.name('md-to-mowen').description('将 Markdown（GFM）转换为墨问笔记').version('0.0.0');
+
+// ── publish ────────────────────────────────────────────────────────────────────
 
 program
   .command('publish')
@@ -45,6 +50,38 @@ program
       }
     } catch (err) {
       console.error('发布失败：', err instanceof Error ? err.message : err);
+      process.exit(1);
+    }
+  });
+
+// ── to-markdown ────────────────────────────────────────────────────────────────
+
+program
+  .command('to-markdown')
+  .description('将 NoteAtom JSON 转换为 Markdown')
+  .requiredOption('-i, --input <file>', 'NoteAtom JSON 文件路径')
+  .option('-o, --output <file>', '输出 Markdown 文件路径（不指定则输出到 stdout）')
+  .action(async (opts) => {
+    try {
+      const raw = await readFile(opts.input, 'utf8');
+      const noteAtom = JSON.parse(raw);
+
+      if (!noteAtom.type || !Array.isArray(noteAtom.content)) {
+        console.error('错误：无效的 NoteAtom JSON，缺少 type 或 content 字段。');
+        process.exit(1);
+      }
+
+      const mast = noteAtomToMast(noteAtom);
+      const md = mastToMarkdown(mast);
+
+      if (opts.output) {
+        await writeFile(opts.output, md, 'utf8');
+        console.log(`✅ 已输出到 ${opts.output}`);
+      } else {
+        process.stdout.write(md);
+      }
+    } catch (err) {
+      console.error('转换失败：', err instanceof Error ? err.message : err);
       process.exit(1);
     }
   });
