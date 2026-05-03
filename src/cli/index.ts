@@ -17,7 +17,7 @@ program
   .option('--tags <tags>', '标签，逗号分隔（如 "tech,ai"）')
   .option('--auto-publish', '自动发布（非草稿）', false)
   .option('--dry-run', '走完流水线但不调用墨问 API，仅打印统计', false)
-  .option('--cache-dir <dir>', '保存各阶段产物的目录（调试用）')
+  .option('--cache-dir <dir>', '保存各阶段产物的目录（调试用）', 'out/pipeline-cache')
   .action(async (opts) => {
     const apiKey = process.env.MOWEN_API_KEY;
     if (!apiKey && !opts.dryRun) {

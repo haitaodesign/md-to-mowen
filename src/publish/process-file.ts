@@ -58,6 +58,7 @@ export async function processFile(
 
   // ── 阶段 01：Markdown → HAST ─────────────────────────────────────────────────
   const hast = mdToHast(markdown);
+  await writeCache(cacheDir, '01-hast.json', hast);
 
   // ── 阶段 02：HAST → MAST ─────────────────────────────────────────────────────
   const mast = hastToMast(hast);
