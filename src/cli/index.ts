@@ -1,12 +1,16 @@
 import { Command } from 'commander';
 import { config } from 'dotenv';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { processFile } from '../publish/process-file.js';
 import { MowenClient } from '../mowen/client.js';
 import { noteAtomToMast } from '../noteatom/to-mast.js';
 import { mastToMarkdown } from '../mast/to-markdown.js';
 import { readFile, writeFile } from 'fs/promises';
 
-config(); // 加载 .env
+// 从项目根目录加载 .env（不依赖 cwd）
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, '../../.env') });
 
 const program = new Command();
 
