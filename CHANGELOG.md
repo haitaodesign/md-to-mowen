@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/momolibrary/md-to-mowen/compare/v1.0.1...v1.0.2) (2026-05-05)
+
+
+### Bug Fixes
+
+* add metadata.json to .gitignore ([fdeff2b](https://github.com/momolibrary/md-to-mowen/commit/fdeff2bf9e3d97a5b717b7f4d6876282ae7ccb70))
+
 ## [1.0.1](https://github.com/momolibrary/md-to-mowen/compare/v1.0.0...v1.0.1) (2026-05-04)
 
 
