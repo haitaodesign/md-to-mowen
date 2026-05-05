@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/momolibrary/md-to-mowen/compare/v1.0.2...v1.1.0) (2026-05-05)
+
+
+### Features
+
+* 支持元数据持久化，自动追踪 file→noteId 映射 ([#1](https://github.com/momolibrary/md-to-mowen/issues/1)) ([cb10c55](https://github.com/momolibrary/md-to-mowen/commit/cb10c557b968558524dd345fac72be0e611238c1))
+
 ## [1.0.2](https://github.com/momolibrary/md-to-mowen/compare/v1.0.1...v1.0.2) (2026-05-05)
 
 
