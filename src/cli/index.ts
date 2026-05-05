@@ -10,6 +10,7 @@ import { processFile } from '../publish/process-file.js';
 import { MowenClient } from '../mowen/client.js';
 import { noteAtomToMast } from '../noteatom/to-mast.js';
 import { mastToMarkdown } from '../mast/to-markdown.js';
+import { findMetadataPath, readMetadata, writeMetadata, lookupNote, upsertNote } from '../shared/metadata.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -158,14 +159,34 @@ program
     const client = new MowenClient(apiKey ?? 'dry-run-placeholder');
     const tags = opts.tags ? (opts.tags as string).split(',').map((t: string) => t.trim()) : undefined;
 
+    // ── 元数据：自动查找已有 noteId ──────────────────────────────────────────────
+    const absInput = resolve(opts.input);
+    const metaPath = findMetadataPath();
+    const metaStore = readMetadata(metaPath);
+
+    let noteId: string | undefined = opts.noteId;
+
+    if (!noteId && !opts.dryRun) {
+      const existing = lookupNote(metaStore, absInput);
+      if (existing) {
+        noteId = existing.noteId;
+        console.log(`  找到已有笔记映射，进入编辑模式：${noteId}`);
+      }
+    }
+
     try {
       const result = await processFile(opts.input, client, {
-        ...(opts.noteId ? { noteId: opts.noteId } : {}),
+        ...(noteId ? { noteId } : {}),
         ...(tags ? { tags } : {}),
         autoPublish: opts.autoPublish,
         dryRun: opts.dryRun,
         ...(opts.cacheDir ? { cacheDir: opts.cacheDir } : {}),
       });
+
+      if (!result.dryRun && result.noteId) {
+        upsertNote(metaStore, absInput, result.noteId);
+        writeMetadata(metaPath, metaStore);
+      }
 
       if (!result.dryRun) {
         console.log(`\n✅ 发布成功`);
