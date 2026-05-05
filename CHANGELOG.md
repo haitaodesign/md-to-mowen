@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/momolibrary/md-to-mowen/compare/v1.1.0...v1.1.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* 取消过期 release 任务避免分支落后 ([629716b](https://github.com/momolibrary/md-to-mowen/commit/629716ba97274c0f7e531a981b3ab32ca65a75b3))
+
 # [1.1.0](https://github.com/momolibrary/md-to-mowen/compare/v1.0.2...v1.1.0) (2026-05-05)
 
 
