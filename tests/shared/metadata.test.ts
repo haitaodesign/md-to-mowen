@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { writeFile, mkdir, rm, readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import {
@@ -54,7 +55,7 @@ describe('readMetadata', () => {
 
     const store = readMetadata(filePath);
     expect(store).toEqual({ version: 1, notes: {} });
-    expect(warnings.some((w) => w.includes('解析失败'))).toBe(true);
+    expect(warnings.some((w) => w.includes('损坏'))).toBe(true);
 
     console.warn = consoleSpy.warn;
   });
@@ -98,6 +99,103 @@ describe('writeMetadata', () => {
 
     const content = await readFile(filePath, 'utf8');
     expect(JSON.parse(content).version).toBe(1);
+  });
+
+  // 原子写入与备份测试
+  it('正常写入后 metadata.json 和 metadata.json.bak 内容正确', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const bakPath = filePath + '.bak';
+
+    // 第一次写入（没有现有文件）
+    const store1: MetadataStore = { version: 1, notes: {} };
+    upsertNote(store1, '/a.md', 'id-1');
+    writeMetadata(filePath, store1);
+
+    // 第一次写入后没有备份
+    expect(existsSync(bakPath)).toBe(false);
+
+    // 第二次写入（覆盖现有文件）
+    const store2: MetadataStore = { version: 1, notes: {} };
+    upsertNote(store2, '/b.md', 'id-2');
+    writeMetadata(filePath, store2);
+
+    // 第二次写入后应该有备份，内容是第一次写入的内容
+    expect(existsSync(bakPath)).toBe(true);
+    const bakContent = JSON.parse(await readFile(bakPath, 'utf8'));
+    expect(bakContent.notes['/a.md']?.noteId).toBe('id-1');
+    expect(bakContent.notes['/b.md']).toBeUndefined();
+
+    // 主文件内容应该是第二次写入的内容
+    const mainContent = JSON.parse(await readFile(filePath, 'utf8'));
+    expect(mainContent.notes['/b.md']?.noteId).toBe('id-2');
+    expect(mainContent.notes['/a.md']).toBeUndefined();
+  });
+
+  it('metadata.json 损坏时自动从 .bak 恟复', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const bakPath = filePath + '.bak';
+
+    // 写入有效数据
+    const store: MetadataStore = { version: 1, notes: {} };
+    upsertNote(store, '/a.md', 'id-1');
+    writeMetadata(filePath, store);
+
+    // 再次写入以创建备份
+    const store2: MetadataStore = { version: 1, notes: {} };
+    upsertNote(store2, '/a.md', 'id-2');
+    writeMetadata(filePath, store2);
+
+    // 模拟主文件损坏
+    await writeFile(filePath, '{ broken json!!!', 'utf8');
+
+    // 读取应该从备份恢复
+    const consoleSpy = { warn: console.warn };
+    const warnings: string[] = [];
+    console.warn = (msg: string) => warnings.push(msg);
+
+    const reloaded = readMetadata(filePath);
+    expect(reloaded.notes['/a.md']?.noteId).toBe('id-1'); // 备份内容
+    expect(warnings.some((w) => w.includes('备份恢复'))).toBe(true);
+
+    console.warn = consoleSpy.warn;
+  });
+
+  it('两者都损坏时创建新的空 metadata', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const bakPath = filePath + '.bak';
+
+    // 模拟主文件和备份都损坏
+    await writeFile(filePath, '{ broken!!!', 'utf8');
+    await writeFile(bakPath, '{ also broken!!!', 'utf8');
+
+    const consoleSpy = { warn: console.warn };
+    const warnings: string[] = [];
+    console.warn = (msg: string) => warnings.push(msg);
+
+    const store = readMetadata(filePath);
+    expect(store).toEqual({ version: 1, notes: {} });
+    expect(warnings.some((w) => w.includes('均损坏'))).toBe(true);
+
+    console.warn = consoleSpy.warn;
+  });
+
+  it('不保留多个历史版本的 .bak', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const bakPath = filePath + '.bak';
+
+    // 连续多次写入
+    for (let i = 1; i <= 5; i++) {
+      const store: MetadataStore = { version: 1, notes: {} };
+      upsertNote(store, `/file${i}.md`, `id-${i}`);
+      writeMetadata(filePath, store);
+    }
+
+    // 只应该有一个备份文件
+    expect(existsSync(bakPath)).toBe(true);
+    const bakContent = JSON.parse(await readFile(bakPath, 'utf8'));
+    // 备份应该是第4次写入的内容（第5次覆盖前）
+    expect(bakContent.notes['/file4.md']?.noteId).toBe('id-4');
+    expect(bakContent.notes['/file5.md']).toBeUndefined();
   });
 });
 
