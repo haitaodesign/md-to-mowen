@@ -1,6 +1,6 @@
 {
   "name": "md-to-mowen",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "将 Markdown（GFM）转换为墨问笔记的 CLI 工具",
   "type": "module",
   "bin": {

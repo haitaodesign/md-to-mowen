@@ -1,3 +1,14 @@
+# [1.2.0](https://github.com/momolibrary/md-to-mowen/compare/v1.1.1...v1.2.0) (2026-05-06)
+
+
+### Features
+
+* 元数据文件原子写入与备份 (#MAR-4) ([781bb6c](https://github.com/momolibrary/md-to-mowen/commit/781bb6cb117605b41b0e7a52dad51f186eb84c4b)), closes [#MAR-4](https://github.com/momolibrary/md-to-mowen/issues/MAR-4)
+* 元数据文件并发写入锁 (#MAR-5) ([a90bb70](https://github.com/momolibrary/md-to-mowen/commit/a90bb70805ada44d24d82300e501bbca6689cca9)), closes [#MAR-5](https://github.com/momolibrary/md-to-mowen/issues/MAR-5)
+* 支持批量发布整个目录的 Markdown 文件 ([#2](https://github.com/momolibrary/md-to-mowen/issues/2)) ([c1067d4](https://github.com/momolibrary/md-to-mowen/commit/c1067d4d204b17ec95065bc19a8670594ed16536))
+* 支持独立的隐私设置命令 ([2153bf8](https://github.com/momolibrary/md-to-mowen/commit/2153bf8747be22f03903486b4fd1a4b41f241da2))
+* 支持配置文件持久化常用选项 ([d26b5d9](https://github.com/momolibrary/md-to-mowen/commit/d26b5d9507ccf9b81206a2abc16a51a8b7c58b47))
+
 ## [1.1.1](https://github.com/momolibrary/md-to-mowen/compare/v1.1.0...v1.1.1) (2026-05-05)
 
 
