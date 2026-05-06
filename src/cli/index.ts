@@ -13,6 +13,7 @@ import { MowenClient, Visibility } from '../mowen/client.js';
 import { noteAtomToMast } from '../noteatom/to-mast.js';
 import { mastToMarkdown } from '../mast/to-markdown.js';
 import { findMetadataPath, readMetadata, writeMetadata, lookupNote, upsertNote } from '../shared/metadata.js';
+import { loadConfig, type MdToMowenConfig } from '../shared/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -142,10 +143,11 @@ program
   .description('发布 Markdown 文件为墨问笔记')
   .requiredOption('-i, --input <path>', 'Markdown 文件路径或目录')
   .option('--note-id <id>', '已有笔记 ID（编辑模式，全量替换）')
-  .option('--tags <tags>', '标签，逗号分隔（如 "tech,ai"）')
-  .option('--auto-publish', '自动发布（非草稿）', false)
+  .option('--tags <tags>', '标签，逗号分隔（如 "tech,ai"），覆盖配置文件 defaultTags')
+  .option('--auto-publish', '自动发布（非草稿），覆盖配置文件 autoPublish', false)
   .option('--dry-run', '走完流水线但不调用墨问 API，仅打印统计', false)
-  .option('--cache-dir <dir>', '保存各阶段产物的目录（调试用）', 'out/pipeline-cache')
+  .option('--cache-dir <dir>', '保存各阶段产物的目录（调试用）')
+  .option('--code-block-style <style>', '代码块样式：paragraph 或 codeblock')
   .option('--no-recursive', '批量发布时不递归扫描子目录', false)
   .action(async (opts) => {
     const apiKey = getApiKey();
@@ -159,9 +161,37 @@ program
       process.exit(1);
     }
 
-    const client = new MowenClient(apiKey ?? 'dry-run-placeholder');
-    const tags = opts.tags ? (opts.tags as string).split(',').map((t: string) => t.trim()) : undefined;
+    // ── 加载配置 ────────────────────────────────────────────────────────────────
     const absInput = resolve(opts.input);
+    const inputDir = dirname(absInput);
+    const cliOverrides: Partial<MdToMowenConfig> = {};
+
+    // CLI 参数优先级最高，仅当明确提供时才覆盖配置
+    if (opts.tags !== undefined) {
+      cliOverrides.defaultTags = opts.tags;
+    }
+    if (opts.autoPublish) {
+      cliOverrides.autoPublish = true;
+    }
+    if (opts.cacheDir) {
+      cliOverrides.cacheDir = opts.cacheDir;
+    }
+    if (opts.codeBlockStyle) {
+      const style = opts.codeBlockStyle as string;
+      if (style === 'paragraph' || style === 'codeblock') {
+        cliOverrides.codeBlockStyle = style;
+      } else {
+        console.error(`错误：--code-block-style="${style}" 无效，支持：paragraph, codeblock`);
+        process.exit(1);
+      }
+    }
+
+    const resolvedConfig = loadConfig(cliOverrides, inputDir);
+
+    const client = new MowenClient(apiKey ?? 'dry-run-placeholder');
+    // 使用 resolvedConfig.defaultTags（可能来自配置文件），但 CLI --tags 覆盖时优先使用
+    const tagsStr = opts.tags !== undefined ? opts.tags : resolvedConfig.defaultTags;
+    const tags = tagsStr ? tagsStr.split(',').map((t: string) => t.trim()) : undefined;
 
     // ── 检测 input 类型 ───────────────────────────────────────────────────────
     try {
@@ -171,9 +201,9 @@ program
         // 目录：批量处理
         const result = await processDirectory(opts.input, client, {
           ...(tags ? { tags } : {}),
-          autoPublish: opts.autoPublish,
+          autoPublish: resolvedConfig.autoPublish,
           dryRun: opts.dryRun,
-          ...(opts.cacheDir ? { cacheDir: opts.cacheDir } : {}),
+          cacheDir: resolvedConfig.cacheDir,
           recursive: !opts.noRecursive,
         });
 
@@ -200,9 +230,10 @@ program
           const result = await processFile(opts.input, client, {
             ...(noteId ? { noteId } : {}),
             ...(tags ? { tags } : {}),
-            autoPublish: opts.autoPublish,
+            autoPublish: resolvedConfig.autoPublish,
             dryRun: opts.dryRun,
-            ...(opts.cacheDir ? { cacheDir: opts.cacheDir } : {}),
+            cacheDir: resolvedConfig.cacheDir,
+            codeBlockStyle: resolvedConfig.codeBlockStyle,
           });
 
           if (!result.dryRun && result.noteId) {

@@ -7,11 +7,17 @@ import type {
   MASTQuoteBlock,
   MASTImageBlock,
   MASTAudioBlock,
+  MASTCodeBlock,
 } from '../../src/mast/types.js';
 
 // 辅助：将 markdown 直接转为 MAST
 function parse(md: string): MASTDocument {
   return hastToMast(mdToHast(md));
+}
+
+// 辅助：将 markdown 转为 MAST，带选项
+function parseWithOptions(md: string, opts: { codeBlockStyle?: 'paragraph' | 'codeblock' }): MASTDocument {
+  return hastToMast(mdToHast(md), opts);
 }
 
 // 辅助：获取顶层块列表
@@ -225,6 +231,60 @@ describe('代码块', () => {
     const blocks = topBlocks(doc);
     expect(blocks).toHaveLength(1);
     expect((blocks[0] as MASTParagraphBlock).content[0].marks?.code).toBe(true);
+  });
+
+  // ── codeBlockStyle: codeblock ─────────────────────────────────────────────────
+
+  it('codeBlockStyle: codeblock → MASTCodeBlock', () => {
+    const doc = parseWithOptions('```typescript\ntype Foo = string;\n```', {
+      codeBlockStyle: 'codeblock',
+    });
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(1);
+    const cb = blocks[0] as MASTCodeBlock;
+    expect(cb.type).toBe('codeblock');
+    expect(cb.language).toBe('typescript');
+    expect(cb.content).toBe('type Foo = string;');
+  });
+
+  it('codeBlockStyle: codeblock 无语言标注时 language 为空', () => {
+    const doc = parseWithOptions('```\nplain code\n```', {
+      codeBlockStyle: 'codeblock',
+    });
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(1);
+    const cb = blocks[0] as MASTCodeBlock;
+    expect(cb.type).toBe('codeblock');
+    expect(cb.language).toBe('');
+    expect(cb.content).toBe('plain code');
+  });
+
+  it('codeBlockStyle: codeblock 多行代码保留完整内容', () => {
+    const doc = parseWithOptions('```js\nline1\nline2\nline3\n```', {
+      codeBlockStyle: 'codeblock',
+    });
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(1);
+    const cb = blocks[0] as MASTCodeBlock;
+    expect(cb.content).toBe('line1\nline2\nline3');
+  });
+
+  it('codeBlockStyle: paragraph 保持现有行为', () => {
+    const doc = parseWithOptions('```js\ncode line\n```', {
+      codeBlockStyle: 'paragraph',
+    });
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(1);
+    const p = blocks[0] as MASTParagraphBlock;
+    expect(p.type).toBe('paragraph');
+    expect(p.content[0].marks?.code).toBe(true);
+  });
+
+  it('codeBlockStyle: 默认为 paragraph', () => {
+    const doc = parse('```js\ncode\n```');
+    const blocks = topBlocks(doc);
+    const p = blocks[0] as MASTParagraphBlock;
+    expect(p.type).toBe('paragraph');
   });
 });
 
