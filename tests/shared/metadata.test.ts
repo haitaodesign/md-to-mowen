@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { writeFile, mkdir, rm, readFile } from 'fs/promises';
-import { existsSync } from 'fs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { writeFile, mkdir, rm, readFile, writeFile as writeFileAsync } from 'fs/promises';
+import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import {
@@ -9,6 +9,10 @@ import {
   lookupNote,
   upsertNote,
   findMetadataPath,
+  withLock,
+  readMetadataAsync,
+  writeMetadataAsync,
+  LOCK_CONSTANTS,
   type MetadataStore,
 } from '../../src/shared/metadata.js';
 
@@ -266,5 +270,210 @@ describe('findMetadataPath', () => {
     const projectDir = join(testDir, 'empty-project');
     const path = findMetadataPath(projectDir);
     expect(path).toContain('empty-project');
+  });
+});
+
+// ── withLock (文件锁) ───────────────────────────────────────────────────────
+
+describe('withLock', () => {
+  const LOCK_SUFFIX = LOCK_CONSTANTS.LOCK_SUFFIX;
+
+  it('两个并发写入不发生数据丢失', async () => {
+    const filePath = join(testDir, 'metadata.json');
+
+    // 初始化空文件
+    const initialStore: MetadataStore = { version: 1, notes: {} };
+    writeMetadata(filePath, initialStore);
+
+    // 模拟两个并发写入：同时添加不同的记录
+    const task1 = withLock(filePath, (store) => {
+      upsertNote(store, '/file1.md', 'note-1');
+      return store;
+    });
+
+    const task2 = withLock(filePath, (store) => {
+      upsertNote(store, '/file2.md', 'note-2');
+      return store;
+    });
+
+    // 等待两个任务完成
+    await Promise.all([task1, task2]);
+
+    // 验证两个记录都存在，没有数据丢失
+    const result = readMetadata(filePath);
+    expect(result.notes['/file1.md']?.noteId).toBe('note-1');
+    expect(result.notes['/file2.md']?.noteId).toBe('note-2');
+  });
+
+  it('进程崩溃后残留锁不会永久阻塞', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const lockPath = filePath + LOCK_SUFFIX;
+
+    // 初始化空文件
+    const initialStore: MetadataStore = { version: 1, notes: {} };
+    writeMetadata(filePath, initialStore);
+
+    // 创建一个过期锁（模拟进程崩溃残留）
+    const expiredLockTime = new Date(Date.now() - LOCK_CONSTANTS.LOCK_EXPIRE_MS - 1000).toISOString();
+    await writeFile(lockPath, JSON.stringify({ pid: 99999, createdAt: expiredLockTime }), 'utf8');
+
+    // 尝试写入，应该能成功获取过期锁
+    await withLock(filePath, (store) => {
+      upsertNote(store, '/test.md', 'note-test');
+      return store;
+    });
+
+    // 验证写入成功
+    const result = readMetadata(filePath);
+    expect(result.notes['/test.md']?.noteId).toBe('note-test');
+
+    // 锁文件应该被释放
+    expect(existsSync(lockPath)).toBe(false);
+  });
+
+  it('等待超时后 fast fail 并提示原因', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const lockPath = filePath + LOCK_SUFFIX;
+
+    // 初始化空文件
+    const initialStore: MetadataStore = { version: 1, notes: {} };
+    writeMetadata(filePath, initialStore);
+
+    // 创建一个有效的锁（未过期）
+    const validLockTime = new Date().toISOString();
+    await writeFile(lockPath, JSON.stringify({ pid: 12345, createdAt: validLockTime }), 'utf8');
+
+    // 尝试写入，应该超时失败
+    // 测试超时需要比锁等待时间长（锁等待5秒，测试需要10秒）
+    try {
+      await withLock(filePath, (store) => {
+        upsertNote(store, '/test.md', 'note-test');
+        return store;
+      });
+      // 如果没有抛错，测试失败
+      expect.fail('应该抛出超时错误');
+    } catch (err) {
+      expect(err instanceof Error).toBe(true);
+      expect((err as Error).message).toContain('获取文件锁超时');
+      expect((err as Error).message).toContain('12345');
+    }
+
+    // 锁文件应该仍然存在（未被删除）
+    expect(existsSync(lockPath)).toBe(true);
+  }, 10000); // 测试超时设置为 10 秒
+
+  it('锁文件损坏时视为过期锁', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const lockPath = filePath + LOCK_SUFFIX;
+
+    // 初始化空文件
+    const initialStore: MetadataStore = { version: 1, notes: {} };
+    writeMetadata(filePath, initialStore);
+
+    // 创建损坏的锁文件
+    await writeFile(lockPath, '{ broken json!!!', 'utf8');
+
+    // 尝试写入，应该能成功获取锁（损坏视为不存在/过期）
+    await withLock(filePath, (store) => {
+      upsertNote(store, '/test.md', 'note-test');
+      return store;
+    });
+
+    // 验证写入成功
+    const result = readMetadata(filePath);
+    expect(result.notes['/test.md']?.noteId).toBe('note-test');
+  });
+
+  it('整体加锁保证读-修改-写原子性', async () => {
+    const filePath = join(testDir, 'metadata.json');
+
+    // 初始化空文件
+    const initialStore: MetadataStore = { version: 1, notes: {} };
+    writeMetadata(filePath, initialStore);
+
+    // 在 withLock 中进行读-修改-写
+    await withLock(filePath, (store) => {
+      // 读取已有数据
+      const existing = lookupNote(store, '/existing.md');
+      expect(existing).toBeUndefined(); // 初始无数据
+
+      // 修改
+      upsertNote(store, '/existing.md', 'note-1');
+      upsertNote(store, '/new.md', 'note-2');
+
+      // 返回修改后的 store
+      return store;
+    });
+
+    // 验证修改成功
+    const result = readMetadata(filePath);
+    expect(result.notes['/existing.md']?.noteId).toBe('note-1');
+    expect(result.notes['/new.md']?.noteId).toBe('note-2');
+  });
+
+  it('操作完成后删除锁文件', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const lockPath = filePath + LOCK_SUFFIX;
+
+    // 初始化空文件
+    const initialStore: MetadataStore = { version: 1, notes: {} };
+    writeMetadata(filePath, initialStore);
+
+    // 执行写入
+    await withLock(filePath, (store) => {
+      upsertNote(store, '/test.md', 'note-test');
+      return store;
+    });
+
+    // 锁文件应该被删除
+    expect(existsSync(lockPath)).toBe(false);
+  });
+
+  it('操作失败时也删除锁文件（finally 保证释放）', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const lockPath = filePath + LOCK_SUFFIX;
+
+    // 初始化空文件
+    const initialStore: MetadataStore = { version: 1, notes: {} };
+    writeMetadata(filePath, initialStore);
+
+    // 执行一个会抛出错误的操作
+    try {
+      await withLock(filePath, () => {
+        throw new Error('操作失败');
+      });
+    } catch (err) {
+      expect((err as Error).message).toBe('操作失败');
+    }
+
+    // 即使操作失败，锁文件也应该被删除
+    expect(existsSync(lockPath)).toBe(false);
+  });
+});
+
+// ── async versions ─────────────────────────────────────────────────────────
+
+describe('readMetadataAsync', () => {
+  it('异步读取元数据', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const store: MetadataStore = { version: 1, notes: {} };
+    upsertNote(store, '/async.md', 'async-note');
+    writeMetadata(filePath, store);
+
+    const result = await readMetadataAsync(filePath);
+    expect(result.notes['/async.md']?.noteId).toBe('async-note');
+  });
+});
+
+describe('writeMetadataAsync', () => {
+  it('异步写入元数据', async () => {
+    const filePath = join(testDir, 'metadata.json');
+    const store: MetadataStore = { version: 1, notes: {} };
+    upsertNote(store, '/async.md', 'async-note');
+
+    await writeMetadataAsync(filePath, store);
+
+    const result = readMetadata(filePath);
+    expect(result.notes['/async.md']?.noteId).toBe('async-note');
   });
 });

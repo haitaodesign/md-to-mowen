@@ -9,13 +9,20 @@ import {
   closeSync,
   renameSync,
   unlinkSync,
+  statSync,
 } from 'fs';
+import { promises as fsPromises } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 
 const METADATA_FILENAME = 'metadata.json';
 const TMP_SUFFIX = '.tmp';
 const BAK_SUFFIX = '.bak';
+const LOCK_SUFFIX = '.lock';
+
+const LOCK_EXPIRE_MS = 30_000; // 锁过期时间：30秒
+const LOCK_WAIT_MS = 5_000; // 等待锁的最大时间：5秒
+const LOCK_RETRY_MS = 100; // 重试间隔：100毫秒
 
 export interface NoteRecord {
   noteId: string;
@@ -155,3 +162,141 @@ export function upsertNote(store: MetadataStore, absPath: string, noteId: string
     store.notes[absPath] = { noteId, createdAt: now, updatedAt: now };
   }
 }
+
+// ── 文件锁机制 ─────────────────────────────────────────────────────────────
+
+export interface LockInfo {
+  pid: number;
+  createdAt: string;
+}
+
+/** 创建锁文件信息 */
+function createLockInfo(): LockInfo {
+  return {
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/** 解析锁文件，损坏时返回 null */
+function parseLockFile(lockPath: string): LockInfo | null {
+  if (!existsSync(lockPath)) return null;
+
+  try {
+    const raw = readFileSync(lockPath, 'utf8');
+    const data = JSON.parse(raw);
+
+    if (data && typeof data === 'object' && typeof data.pid === 'number' && typeof data.createdAt === 'string') {
+      return data as LockInfo;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** 检查锁是否过期 */
+function isLockExpired(lockInfo: LockInfo): boolean {
+  const lockTime = new Date(lockInfo.createdAt).getTime();
+  const now = Date.now();
+  return now - lockTime > LOCK_EXPIRE_MS;
+}
+
+/** 等待并获取锁 */
+async function acquireLock(lockPath: string): Promise<void> {
+  const startTime = Date.now();
+
+  while (true) {
+    const existingLock = parseLockFile(lockPath);
+
+    if (!existingLock) {
+      // 无锁或锁文件损坏，尝试创建锁
+      try {
+        const lockInfo = createLockInfo();
+        const dir = dirname(lockPath);
+        if (!existsSync(dir)) {
+          mkdirSync(dir, { recursive: true });
+        }
+        writeFileSync(lockPath, JSON.stringify(lockInfo), 'utf8');
+        return; // 成功获取锁
+      } catch {
+        // 写入失败，可能被其他进程抢先，继续重试
+      }
+    } else if (isLockExpired(existingLock)) {
+      // 锁已过期，强制获取（删除旧锁）
+      try {
+        unlinkSync(lockPath);
+        const lockInfo = createLockInfo();
+        writeFileSync(lockPath, JSON.stringify(lockInfo), 'utf8');
+        return; // 成功获取锁
+      } catch {
+        // 删除或写入失败，继续重试
+      }
+    } else {
+      // 锁有效且未过期，继续等待
+    }
+
+    // 检查是否超时
+    if (Date.now() - startTime > LOCK_WAIT_MS) {
+      const holderPid = existingLock?.pid ?? 'unknown';
+      const holderTime = existingLock?.createdAt ?? 'unknown';
+      throw new Error(
+        `获取文件锁超时（等待 ${LOCK_WAIT_MS}ms）。锁文件：${lockPath}，持有者 PID：${holderPid}，创建时间：${holderTime}`,
+      );
+    }
+
+    // 等待后重试
+    await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+  }
+}
+
+/** 释放锁 */
+async function releaseLock(lockPath: string): Promise<void> {
+  try {
+    if (existsSync(lockPath)) {
+      unlinkSync(lockPath);
+    }
+  } catch {
+    // 释放失败时忽略（可能是其他进程已删除）
+  }
+}
+
+/** 异步读取元数据 */
+export async function readMetadataAsync(filePath: string): Promise<MetadataStore> {
+  return readMetadata(filePath);
+}
+
+/** 异步写入元数据 */
+export async function writeMetadataAsync(filePath: string, store: MetadataStore): Promise<void> {
+  return writeMetadata(filePath, store);
+}
+
+/**
+ * 在锁保护下执行读-修改-写操作。
+ * 整个过程加锁，保证原子性。
+ *
+ * @param filePath 元数据文件路径
+ * @param operation 修改操作函数，接收当前 store，返回更新后的 store
+ * @throws 锁等待超时时抛出错误
+ */
+export async function withLock(filePath: string, operation: (store: MetadataStore) => MetadataStore): Promise<void> {
+  const lockPath = filePath + LOCK_SUFFIX;
+
+  await acquireLock(lockPath);
+  try {
+    const store = await readMetadataAsync(filePath);
+    const updated = operation(store);
+    await writeMetadataAsync(filePath, updated);
+  } finally {
+    await releaseLock(lockPath);
+  }
+}
+
+/** 导出锁相关常量供测试使用 */
+export const LOCK_CONSTANTS = {
+  LOCK_EXPIRE_MS,
+  LOCK_WAIT_MS,
+  LOCK_RETRY_MS,
+  LOCK_SUFFIX,
+};
