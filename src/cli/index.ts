@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { createInterface } from 'readline';
 import { processFile } from '../publish/process-file.js';
-import { MowenClient } from '../mowen/client.js';
+import { MowenClient, Visibility } from '../mowen/client.js';
 import { noteAtomToMast } from '../noteatom/to-mast.js';
 import { mastToMarkdown } from '../mast/to-markdown.js';
 import { findMetadataPath, readMetadata, writeMetadata, lookupNote, upsertNote } from '../shared/metadata.js';
@@ -228,6 +228,81 @@ program
       }
     } catch (err) {
       console.error('转换失败：', err instanceof Error ? err.message : err);
+      process.exit(1);
+    }
+  });
+
+// ── privacy ────────────────────────────────────────────────────────────────────
+
+program
+  .command('privacy')
+  .description('设置笔记的隐私状态')
+  .option('--note-id <id>', '笔记 ID')
+  .option('-i, --input <file>', 'Markdown 文件路径（需要元数据支持）')
+  .requiredOption('--visibility <visibility>', '隐私状态：public 或 private')
+  .option('--dry-run', '不调用 API，仅打印操作信息', false)
+  .action(async (opts) => {
+    if (!opts.noteId && !opts.input) {
+      console.error('错误：必须提供 --note-id 或 --input');
+      process.exit(1);
+    }
+
+    if (opts.noteId && opts.input) {
+      console.error('错误：--note-id 和 --input 不能同时使用');
+      process.exit(1);
+    }
+
+    const visibility = opts.visibility as string;
+    if (visibility !== 'public' && visibility !== 'private') {
+      console.error('错误：--visibility 必须是 public 或 private');
+      process.exit(1);
+    }
+
+    const apiKey = getApiKey();
+    if (!apiKey && !opts.dryRun) {
+      console.error('错误：未设置 MOWEN_API_KEY。');
+      console.error('');
+      console.error('请先运行以下命令配置 API Key：');
+      console.error('  md-to-mowen config');
+      console.error('');
+      console.error('获取方式：微信小程序"墨问" → 个人主页 → 开发者 → 我的 API Key');
+      process.exit(1);
+    }
+
+    let noteId: string;
+
+    if (opts.input) {
+      const absInput = resolve(opts.input);
+      const metaPath = findMetadataPath();
+      const metaStore = readMetadata(metaPath);
+      const existing = lookupNote(metaStore, absInput);
+
+      if (!existing) {
+        console.error('错误：未找到该文件的元数据记录，请使用 --note-id 指定笔记 ID');
+        process.exit(1);
+      }
+
+      noteId = existing.noteId;
+      console.log(`  从元数据找到笔记 ID：${noteId}`);
+    } else {
+      noteId = opts.noteId as string;
+    }
+
+    if (opts.dryRun) {
+      console.log(`\n[dry-run] 将设置笔记 ${noteId} 隐私状态为 ${visibility}`);
+      return;
+    }
+
+    const client = new MowenClient(apiKey!);
+
+    try {
+      await client.setPrivacy(noteId, visibility as Visibility);
+      console.log(`\n✅ 隐私设置成功`);
+      console.log(`   笔记 ID：${noteId}`);
+      console.log(`   隐私状态：${visibility}`);
+      console.log(`   访问地址：https://mowen.cn/note/${noteId}\n`);
+    } catch (err) {
+      console.error('设置失败：', err instanceof Error ? err.message : err);
       process.exit(1);
     }
   });
