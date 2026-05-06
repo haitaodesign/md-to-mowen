@@ -7,10 +7,18 @@ import type {
   MASTQuoteBlock,
   MASTImageBlock,
   MASTAudioBlock,
+  MASTCodeBlock,
   MASTInlineNode,
   MASTTextRun,
   MASTInlineMarks,
 } from '../mast/types.js';
+
+// ── 转换选项 ───────────────────────────────────────────────────────────────────
+
+export interface HastToMastOptions {
+  /** 代码块样式：paragraph（转为段落）或 codeblock（转为代码块节点） */
+  codeBlockStyle?: 'paragraph' | 'codeblock';
+}
 
 // ── ID 生成 ────────────────────────────────────────────────────────────────────
 
@@ -149,7 +157,7 @@ function makeEmptyParagraph(): MASTParagraphBlock {
  * 将 HAST 元素转换为一组 MAST 块节点。
  * 返回数组是因为某些元素（如列表）会展开为多个块。
  */
-function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
+function convertBlock(node: Element, doc: MASTDocument, opts: HastToMastOptions = {}): MASTBlockNode[] {
   const tag = node.tagName;
 
   // ── 标题 ──────────────────────────────────────────────────────────────────
@@ -203,7 +211,7 @@ function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
 
     for (const child of node.children) {
       if (!isElement(child)) continue;
-      const childBlocks = convertBlock(child, doc);
+      const childBlocks = convertBlock(child, doc, opts);
       for (const b of childBlocks) {
         doc.blocks[b.id] = b;
         childIds.push(b.id);
@@ -220,12 +228,12 @@ function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
 
   // ── 无序列表 ──────────────────────────────────────────────────────────────
   if (tag === 'ul') {
-    return convertList(node, doc, false, 0);
+    return convertList(node, doc, opts, false, 0);
   }
 
   // ── 有序列表 ──────────────────────────────────────────────────────────────
   if (tag === 'ol') {
-    return convertList(node, doc, true, 0);
+    return convertList(node, doc, opts, true, 0);
   }
 
   // ── 代码块 ────────────────────────────────────────────────────────────────
@@ -234,6 +242,36 @@ function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
 
     const rawText = codeEl ? extractTextContent(codeEl) : extractTextContent(node);
 
+    // 提取语言标识（从 code 元素的 className）
+    let language = '';
+    if (codeEl && codeEl.properties?.className) {
+      const classNames = Array.isArray(codeEl.properties.className)
+        ? (codeEl.properties.className as string[])
+        : [codeEl.properties.className as string];
+      // 常见格式：language-js, lang-js, js 等
+      const langClass = classNames.find(
+        (c) => typeof c === 'string' && (c.startsWith('language-') || c.startsWith('lang-')),
+      );
+      if (langClass) {
+        language = langClass.replace(/^language-|^lang-/, '');
+      } else if (classNames.length > 0 && typeof classNames[0] === 'string') {
+        // 直接使用第一个 class 名作为语言（如 typescript, python）
+        language = classNames[0];
+      }
+    }
+
+    // codeBlockStyle: codeblock → 生成 MASTCodeBlock
+    if (opts.codeBlockStyle === 'codeblock') {
+      const block: MASTCodeBlock = {
+        id: newId(),
+        type: 'codeblock',
+        language,
+        content: rawText.replace(/\n$/, ''),
+      };
+      return [block];
+    }
+
+    // 默认 paragraph 模式：每行转为带 code 标记的 paragraph
     const lines = rawText.replace(/\n$/, '').split('\n');
     return lines.map((line) => makeParagraph([{ type: 'text', text: line, marks: { code: true } }]));
   }
@@ -263,7 +301,7 @@ function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
     const blocks: MASTBlockNode[] = [];
     for (const child of node.children) {
       if (isElement(child)) {
-        blocks.push(...convertBlock(child, doc));
+        blocks.push(...convertBlock(child, doc, opts));
       }
     }
     return blocks;
@@ -279,7 +317,13 @@ function convertBlock(node: Element, doc: MASTDocument): MASTBlockNode[] {
 
 // ── 列表转换 ───────────────────────────────────────────────────────────────────
 
-function convertList(listEl: Element, doc: MASTDocument, ordered: boolean, depth: number): MASTBlockNode[] {
+function convertList(
+  listEl: Element,
+  doc: MASTDocument,
+  opts: HastToMastOptions,
+  ordered: boolean,
+  depth: number,
+): MASTBlockNode[] {
   const blocks: MASTBlockNode[] = [];
   let itemIndex = 1;
   const indent = '  '.repeat(depth);
@@ -303,9 +347,9 @@ function convertList(listEl: Element, doc: MASTDocument, ordered: boolean, depth
       }
 
       if (liChild.tagName === 'ul') {
-        nestedBlocks.push(...convertList(liChild, doc, false, depth + 1));
+        nestedBlocks.push(...convertList(liChild, doc, opts, false, depth + 1));
       } else if (liChild.tagName === 'ol') {
-        nestedBlocks.push(...convertList(liChild, doc, true, depth + 1));
+        nestedBlocks.push(...convertList(liChild, doc, opts, true, depth + 1));
       } else if (liChild.tagName === 'p') {
         paragraphContent.push(...extractInlineContent(liChild));
       } else {
@@ -373,13 +417,16 @@ function tableToMarkdown(tableEl: Element): string {
 
 /**
  * 将 HAST Root 转换为 MASTDocument。
+ *
+ * @param hast HAST Root 节点
+ * @param opts 转换选项
  */
-export function hastToMast(hast: Root): MASTDocument {
+export function hastToMast(hast: Root, opts: HastToMastOptions = {}): MASTDocument {
   const doc: MASTDocument = { blocks: {}, topLevel: [] };
 
   for (const node of hast.children) {
     if (!isElement(node)) continue;
-    const blocks = convertBlock(node, doc);
+    const blocks = convertBlock(node, doc, opts);
     for (const block of blocks) {
       doc.blocks[block.id] = block;
       doc.topLevel.push(block.id);

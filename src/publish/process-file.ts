@@ -19,6 +19,8 @@ export interface PublishOptions {
   dryRun?: boolean;
   /** 调试缓存目录，写入各阶段产物 */
   cacheDir?: string;
+  /** 代码块样式：paragraph（转为段落）或 codeblock（转为代码块节点） */
+  codeBlockStyle?: 'paragraph' | 'codeblock';
 }
 
 export interface PublishResult {
@@ -36,6 +38,7 @@ export interface PipelineStats {
   images: number;
   tables: number;
   audios: number;
+  codeblocks: number;
   totalBlocks: number;
   /** dry-run 时为 0 */
   uploadedAssets: number;
@@ -49,7 +52,7 @@ export async function processFile(
   client: MowenClient,
   opts: PublishOptions = {},
 ): Promise<PublishResult> {
-  const { noteId, tags, autoPublish = false, dryRun = false, cacheDir } = opts;
+  const { noteId, tags, autoPublish = false, dryRun = false, cacheDir, codeBlockStyle } = opts;
 
   // ── 阶段 00：读取文件 ────────────────────────────────────────────────────────
   const absPath = resolve(filePath);
@@ -61,7 +64,7 @@ export async function processFile(
   await writeCache(cacheDir, '01-hast.json', hast);
 
   // ── 阶段 02：HAST → MAST ─────────────────────────────────────────────────────
-  const mast = hastToMast(hast);
+  const mast = hastToMast(hast, codeBlockStyle ? { codeBlockStyle } : {});
   await writeCache(cacheDir, '02-mast.json', mast);
 
   // ── 阶段 03：资源处理 ────────────────────────────────────────────────────────
@@ -102,6 +105,7 @@ function collectStats(mast: MASTDocument, dryRun: boolean): PipelineStats {
   let images = 0;
   let tables = 0;
   let audios = 0;
+  let codeblocks = 0;
 
   for (const block of Object.values(mast.blocks)) {
     if (block.type === 'paragraph') paragraphs++;
@@ -110,6 +114,7 @@ function collectStats(mast: MASTDocument, dryRun: boolean): PipelineStats {
       if (block.isTable) tables++;
       else images++;
     } else if (block.type === 'audio') audios++;
+    else if (block.type === 'codeblock') codeblocks++;
   }
 
   return {
@@ -118,7 +123,8 @@ function collectStats(mast: MASTDocument, dryRun: boolean): PipelineStats {
     images,
     tables,
     audios,
-    totalBlocks: paragraphs + quotes + images + tables + audios,
+    codeblocks,
+    totalBlocks: paragraphs + quotes + images + tables + audios + codeblocks,
     uploadedAssets: dryRun ? 0 : images + tables + audios,
   };
 }
@@ -134,6 +140,7 @@ function printDryRunReport(filePath: string, stats: PipelineStats, noteAtom: Not
   console.log(`  图片块：    ${stats.images}`);
   console.log(`  表格块：    ${stats.tables}`);
   console.log(`  音频块：    ${stats.audios}`);
+  console.log(`  代码块：    ${stats.codeblocks}`);
   console.log(`  总块数：    ${stats.totalBlocks}`);
   console.log(`  待上传资源：${stats.images + stats.tables + stats.audios}（dry-run 跳过）`);
   console.log(`\nNoteAtom 预览（前 3 个块）：`);
