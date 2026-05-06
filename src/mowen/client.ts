@@ -30,6 +30,8 @@ export interface UploadUrlResponse {
 
 export type FileType = 1 | 2 | 3; // 1=图片, 2=音频, 3=PDF
 
+export type Visibility = 'public' | 'private';
+
 /**
  * 墨问 API 客户端
  */
@@ -102,6 +104,19 @@ export class MowenClient {
   /** 编辑已有笔记（全量替换） */
   async editNote(noteId: string, body: unknown): Promise<void> {
     await this.request('/api/open/api/v1/note/edit', { noteId, body });
+  }
+
+  /** 设置笔记隐私状态 */
+  async setPrivacy(noteId: string, visibility: Visibility): Promise<void> {
+    await this.request('/api/open/api/v1/note/settings', {
+      noteId,
+      section: 1,
+      settings: {
+        privacy: {
+          type: visibility,
+        },
+      },
+    });
   }
 }
 
