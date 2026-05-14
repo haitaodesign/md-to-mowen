@@ -5,6 +5,8 @@
 
 将 Markdown（GFM）一键发布为墨问笔记的 CLI 工具。
 
+![image-20260514130051810](./images/readme_header.png)
+
 ## 功能特性
 
 - **一键发布** — 单文件或整个目录批量发布
