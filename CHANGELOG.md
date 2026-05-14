@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/momolibrary/md-to-mowen/compare/v1.2.0...v1.2.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* add header image ([314728e](https://github.com/momolibrary/md-to-mowen/commit/314728ee91627e16cfba2bb1d49dc610e6ad7c86))
+
 # [1.2.0](https://github.com/momolibrary/md-to-mowen/compare/v1.1.1...v1.2.0) (2026-05-06)
 
 
