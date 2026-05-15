@@ -1,0 +1,49 @@
+{
+  "name": "md-to-mowen",
+  "version": "1.2.1",
+  "description": "将 Markdown（GFM）转换为墨问笔记的 CLI 工具，支持一键发布、智能编辑、图片处理、表格渲染等功能",
+  "skills": [
+    {
+      "name": "mowen",
+      "description": "默问 (Mowen) 文章发布/编辑技能 - 完整发布流程（HTML+CSS 高清表格渲染、质量检查、自动配图）",
+      "trigger": {
+        "keywords": ["墨问", "mowen", "发布笔记", "发布文章", "markdown 发布", "mowen publish"],
+        "commands": ["publish", "to-markdown", "privacy", "config"]
+      },
+      "instructions": "使用 md-to-mowen CLI 工具将 Markdown 文件发布到墨问平台。\n\n## 快速开始\n\n1. 配置 API Key: `md-to-mowen config`\n2. 发布笔记: `md-to-mowen publish -i article.md`\n3. 添加标签: `md-to-mowen publish -i article.md --tags \"tech,ai\"`\n\n## 功能特性\n\n- **一键发布** — 单文件或整个目录批量发布\n- **智能编辑** — 自动追踪文件与笔记映射，再次发布自动进入编辑模式\n- **图片处理** — 本地图片/远程 URL 自动上传到墨问 OSS\n- **表格渲染** — Markdown 表格自动渲染为高清 PNG 图片\n- **隐私控制** — 独立命令设置笔记公开/私密状态\n\n## 命令\n\n- `publish` — 发布笔记\n- `privacy` — 设置隐私状态\n- `to-markdown` — NoteAtom 转 Markdown\n- `config` — 配置 API Key"
+    }
+  ],
+  "commands": [
+    {
+      "name": "publish",
+      "description": "发布 Markdown 文件到墨问笔记",
+      "binary": "md-to-mowen",
+      "args": ["publish", "-i", "${input}"]
+    },
+    {
+      "name": "privacy",
+      "description": "设置笔记隐私状态",
+      "binary": "md-to-mowen",
+      "args": ["privacy", "--note-id", "${noteId}", "--visibility", "${visibility}"]
+    },
+    {
+      "name": "to-markdown",
+      "description": "将 NoteAtom JSON 转换为 Markdown",
+      "binary": "md-to-mowen",
+      "args": ["to-markdown", "-i", "${input}", "-o", "${output}"]
+    },
+    {
+      "name": "config",
+      "description": "配置墨问 API Key",
+      "binary": "md-to-mowen",
+      "args": ["config"]
+    }
+  ],
+  "author": "tecson",
+  "license": "MIT",
+  "homepage": "https://github.com/tecson/md-to-mowen#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tecson/md-to-mowen.git"
+  }
+}

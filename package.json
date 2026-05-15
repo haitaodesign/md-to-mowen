@@ -8,7 +8,8 @@
   },
   "files": [
     "dist",
-    "!dist/out"
+    "!dist/out",
+    ".claude-plugin"
   ],
   "exports": {
     ".": "./dist/publish/index.js",
