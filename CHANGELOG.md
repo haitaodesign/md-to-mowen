@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/momolibrary/md-to-mowen/compare/v1.2.1...v1.3.0) (2026-05-15)
+
+
+### Features
+
+* 支持 Claude 插件安装方式 ([f1136b0](https://github.com/momolibrary/md-to-mowen/commit/f1136b0454152d20fc0a28405583da617d7cd9d9))
+
 ## [1.2.1](https://github.com/momolibrary/md-to-mowen/compare/v1.2.0...v1.2.1) (2026-05-14)
 
 
