@@ -353,7 +353,7 @@ function convertList(
       } else if (liChild.tagName === 'p') {
         paragraphContent.push(...extractInlineContent(liChild));
       } else {
-        paragraphContent.push(...extractInlineContent(liChild));
+        paragraphContent.push(...extractInline([liChild]));
       }
     }
 
