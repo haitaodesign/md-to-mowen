@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/momolibrary/md-to-mowen/compare/v1.3.0...v1.3.1) (2026-05-28)
+
+
+### Bug Fixes
+
+* move playwright to dependencies and add postinstall script for chromium ([#18](https://github.com/momolibrary/md-to-mowen/issues/18)) ([288178c](https://github.com/momolibrary/md-to-mowen/commit/288178c6cc2d91877f81bd4fe97ced9b0eaf5642))
+* 修复列表项内超链接和格式丢失的 bug ([#19](https://github.com/momolibrary/md-to-mowen/issues/19)) ([0f20330](https://github.com/momolibrary/md-to-mowen/commit/0f20330e63b732c02911c13376d3bbadb9d7069f))
+
 # [1.3.0](https://github.com/momolibrary/md-to-mowen/compare/v1.2.1...v1.3.0) (2026-05-15)
 
 
