@@ -51,18 +51,20 @@ test: 增加 MAST 序列化单元测试
 
 ## 提交前检查清单（pre-commit hook 会自动执行）
 
-每次 `git commit` 时 husky 会运行 lint-staged，**格式化自动完成**，一次通过的标准做法：
+每次 `git commit` 时 husky 会自动运行测试 + lint-staged，**全部自动完成**，一次通过的标准做法：
 
 ```bash
-npm test         # 1. 确认测试全部通过
-git add <files>  # 2. 暂存目标文件（不要 git add .）
-git commit       # 3. 提交，hook 自动格式化 + PII 扫描
+git add <files>  # 1. 暂存目标文件（不要 git add .）
+git commit       # 2. 提交，hook 自动：测试 → 格式化 → PII 扫描
 ```
 
-hook 执行项：
+> 测试失败会阻止提交；修复后重新 `git add` + `git commit` 即可。
+
+hook 执行项（按顺序）：
 
 | 检查项     | 命令                                 | 说明                                    |
 | ---------- | ------------------------------------ | --------------------------------------- |
+| 单元测试   | `npm test`                           | vitest 全量测试，失败则阻止提交         |
 | 自动格式化 | `prettier --write`                   | 自动修复，无需手动 format               |
 | PII 扫描   | `node scripts/lint-pii.mjs --staged` | 含绝对路径/Token/`.env` 被追踪时 exit 1 |
 
