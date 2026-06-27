@@ -23,13 +23,15 @@ function mimeFromFileName(fileName: string): string {
 /**
  * 上传本地图片文件，返回 fileId。
  * 使用两步 OSS 上传流程：prepare → multipart POST。
+ *
+ * @param alt 可选的替代文本，用作上传文件名。为空时不传文件名（图片不带标题）。
  */
-export async function uploadLocalFile(filePath: string, client: MowenClient): Promise<string> {
-  const fileName = basename(filePath);
+export async function uploadLocalFile(filePath: string, client: MowenClient, alt?: string): Promise<string> {
+  const fileName = alt?.trim() || '';
   const fileBuffer = await readFile(filePath);
 
   const form = await client.uploadPrepare(1, fileName);
-  await ossUpload(form, fileBuffer, fileName);
+  await ossUpload(form, fileBuffer, fileName || basename(filePath));
   return form['x:file_id'];
 }
 
@@ -43,19 +45,22 @@ export async function uploadRemoteUrl(url: string, client: MowenClient): Promise
 /**
  * 上传 Data URI 图片，返回 fileId。
  * 支持 data:image/png;base64,... 格式。
+ *
+ * @param alt 可选的替代文本，用作上传文件名。为空时不传文件名（图片不带标题）。
  */
-export async function uploadDataUri(dataUri: string, client: MowenClient): Promise<string> {
+export async function uploadDataUri(dataUri: string, client: MowenClient, alt?: string): Promise<string> {
   const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw new Error(`Invalid data URI: ${dataUri.slice(0, 40)}`);
 
   const mime = match[1] ?? 'image/png';
   const b64 = match[2] ?? '';
   const ext = mime.split('/')[1] ?? 'png';
-  const fileName = `image.${ext}`;
+  const uploadFileName = alt?.trim() || '';
+  const ossFileName = `image.${ext}`;
   const buffer = Buffer.from(b64, 'base64');
 
-  const form = await client.uploadPrepare(1, fileName);
-  await ossUpload(form, buffer, fileName);
+  const form = await client.uploadPrepare(1, uploadFileName);
+  await ossUpload(form, buffer, ossFileName);
   return form['x:file_id'];
 }
 

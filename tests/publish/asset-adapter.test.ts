@@ -117,7 +117,7 @@ describe('表格渲染', () => {
     await processAssets(doc, client, { dryRun: false });
 
     expect(renderTableToPng).toHaveBeenCalledWith(block.src);
-    expect(client.uploadPrepare).toHaveBeenCalledWith(1, expect.stringMatching(/table-.*\.png/));
+    expect(client.uploadPrepare).toHaveBeenCalledWith(1, '');
     expect(block.uuid).toBe('file-id-123');
   });
 });

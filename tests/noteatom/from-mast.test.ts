@@ -65,6 +65,12 @@ describe('行内标记序列化', () => {
     expect(p.content[0].marks).toContainEqual({ type: 'strikethrough' });
   });
 
+  it('highlight → { type: "highlight" }', () => {
+    const na = mastToNoteAtom(paraWithMarks({ highlight: true }));
+    const p = na.content[0] as NoteAtomParagraph;
+    expect(p.content[0].marks).toContainEqual({ type: 'highlight' });
+  });
+
   it('link → { type: "link", attrs: { href } }', () => {
     const na = mastToNoteAtom(paraWithMarks({ link: 'https://example.com' }));
     const p = na.content[0] as NoteAtomParagraph;
@@ -82,13 +88,20 @@ describe('行内标记序列化', () => {
     expect(types).toContain('italic');
   });
 
-  it('标记顺序：code → strikethrough → bold → italic → link', () => {
+  it('标记顺序：code → strikethrough → bold → highlight → italic → link', () => {
     const na = mastToNoteAtom(
-      paraWithMarks({ bold: true, italic: true, code: true, strikethrough: true, link: 'https://x.com' }),
+      paraWithMarks({
+        bold: true,
+        italic: true,
+        code: true,
+        strikethrough: true,
+        highlight: true,
+        link: 'https://x.com',
+      }),
     );
     const p = na.content[0] as NoteAtomParagraph;
     const types = p.content[0].marks!.map((m) => m.type);
-    expect(types).toEqual(['code', 'strikethrough', 'bold', 'italic', 'link']);
+    expect(types).toEqual(['code', 'strikethrough', 'bold', 'highlight', 'italic', 'link']);
   });
 });
 

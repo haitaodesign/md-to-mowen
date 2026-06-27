@@ -133,12 +133,13 @@ describe('段落', () => {
     expect(p.content[0].text).toBe('Hello world');
   });
 
-  it('多段落各自独立', () => {
+  it('多段落各自独立（空行生成空段落）', () => {
     const doc = parse('第一段\n\n第二段');
     const blocks = topBlocks(doc);
-    expect(blocks).toHaveLength(2);
+    expect(blocks).toHaveLength(3);
     expect((blocks[0] as MASTParagraphBlock).content[0].text).toBe('第一段');
-    expect((blocks[1] as MASTParagraphBlock).content[0].text).toBe('第二段');
+    expect((blocks[1] as MASTParagraphBlock).content).toHaveLength(0); // 空行 → 空段落
+    expect((blocks[2] as MASTParagraphBlock).content[0].text).toBe('第二段');
   });
 });
 
@@ -384,7 +385,7 @@ describe('块 ID', () => {
 // ── 综合场景 ───────────────────────────────────────────────────────────────────
 
 describe('综合场景', () => {
-  it('混合内容文档', () => {
+  it('混合内容文档（空行生成空段落）', () => {
     const md = `# 标题
 
 普通段落，包含 **粗体** 和 *斜体*。
@@ -406,23 +407,128 @@ console.log('hello');
     // H1 → bold paragraph
     expect((blocks[0] as MASTParagraphBlock).content[0].marks?.bold).toBe(true);
 
-    // 普通段落有 3 个 run（前文、粗体、斜体部分）
-    const para = blocks[1] as MASTParagraphBlock;
+    // 空行 → 空段落
+    expect((blocks[1] as MASTParagraphBlock).content).toHaveLength(0);
+
+    // 普通段落
+    const para = blocks[2] as MASTParagraphBlock;
     expect(para.type).toBe('paragraph');
 
+    // 空行 → 空段落
+    expect((blocks[3] as MASTParagraphBlock).content).toHaveLength(0);
+
     // 列表
-    expect((blocks[2] as MASTParagraphBlock).content[0].text).toBe('• ');
-    expect((blocks[3] as MASTParagraphBlock).content[0].text).toBe('• ');
+    expect((blocks[4] as MASTParagraphBlock).content[0].text).toBe('• ');
+    expect((blocks[5] as MASTParagraphBlock).content[0].text).toBe('• ');
+
+    // 空行 → 空段落
+    expect((blocks[6] as MASTParagraphBlock).content).toHaveLength(0);
 
     // 引用
-    expect(blocks[4].type).toBe('quote');
+    expect(blocks[7].type).toBe('quote');
+
+    // 空行 → 空段落
+    expect((blocks[8] as MASTParagraphBlock).content).toHaveLength(0);
 
     // 代码块
-    expect((blocks[5] as MASTParagraphBlock).content[0].marks?.code).toBe(true);
+    expect((blocks[9] as MASTParagraphBlock).content[0].marks?.code).toBe(true);
+
+    // 空行 → 空段落
+    expect((blocks[10] as MASTParagraphBlock).content).toHaveLength(0);
 
     // 分隔线
     const hr = blocks[blocks.length - 1] as MASTParagraphBlock;
     expect(hr.type).toBe('paragraph');
     expect(hr.content).toHaveLength(0);
+  });
+});
+
+// ── 空行处理 ─────────────────────────────────────────────────────────────────
+
+describe('空行处理', () => {
+  it('单空行 → 1 个空段落', () => {
+    const doc = parse('第一行\n\n第二行');
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(3);
+    expect((blocks[0] as MASTParagraphBlock).content[0].text).toBe('第一行');
+    expect((blocks[1] as MASTParagraphBlock).content).toHaveLength(0);
+    expect((blocks[2] as MASTParagraphBlock).content[0].text).toBe('第二行');
+  });
+
+  it('双空行 → 2 个空段落', () => {
+    const doc = parse('第一行\n\n\n第二行');
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(4);
+    expect((blocks[1] as MASTParagraphBlock).content).toHaveLength(0);
+    expect((blocks[2] as MASTParagraphBlock).content).toHaveLength(0);
+  });
+
+  it('标题后空行 → 正确插入', () => {
+    const doc = parse('# 标题\n\n正文');
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(3);
+    expect((blocks[0] as MASTParagraphBlock).content[0].marks?.bold).toBe(true);
+    expect((blocks[1] as MASTParagraphBlock).content).toHaveLength(0);
+    expect((blocks[2] as MASTParagraphBlock).content[0].text).toBe('正文');
+  });
+
+  it('连续三空行 → 3 个空段落', () => {
+    const doc = parse('A\n\n\n\nB');
+    const blocks = topBlocks(doc);
+    expect(blocks).toHaveLength(5);
+    expect((blocks[1] as MASTParagraphBlock).content).toHaveLength(0);
+    expect((blocks[2] as MASTParagraphBlock).content).toHaveLength(0);
+    expect((blocks[3] as MASTParagraphBlock).content).toHaveLength(0);
+  });
+});
+
+// ── 高亮支持 ─────────────────────────────────────────────────────────────────
+
+describe('高亮支持', () => {
+  it('==text== → highlight TextRun', () => {
+    const doc = parse('普通 ==高亮== 文字');
+    const p = topBlocks(doc)[0] as MASTParagraphBlock;
+    expect(p.content).toHaveLength(3);
+    expect(p.content[0].text).toBe('普通 ');
+    expect(p.content[0].marks).toBeUndefined();
+    expect(p.content[1].text).toBe('高亮');
+    expect(p.content[1].marks?.highlight).toBe(true);
+    expect(p.content[2].text).toBe(' 文字');
+    expect(p.content[2].marks).toBeUndefined();
+  });
+
+  it('==**粗体**== → bold + highlight', () => {
+    const doc = parse('==**粗体高亮**==');
+    const p = topBlocks(doc)[0] as MASTParagraphBlock;
+    expect(p.content).toHaveLength(1);
+    expect(p.content[0].marks?.bold).toBe(true);
+    expect(p.content[0].marks?.highlight).toBe(true);
+  });
+
+  it('连续 ==a== ==b== → 两个独立高亮', () => {
+    const doc = parse('==甲== ==乙==');
+    const p = topBlocks(doc)[0] as MASTParagraphBlock;
+    expect(p.content[0].text).toBe('甲');
+    expect(p.content[0].marks?.highlight).toBe(true);
+    expect(p.content[1].text).toBe(' ');
+    expect(p.content[1].marks).toBeUndefined();
+    expect(p.content[2].text).toBe('乙');
+    expect(p.content[2].marks?.highlight).toBe(true);
+  });
+
+  it('普通文本不受影响', () => {
+    const doc = parse('没有高亮的文字');
+    const p = topBlocks(doc)[0] as MASTParagraphBlock;
+    expect(p.content).toHaveLength(1);
+    expect(p.content[0].marks).toBeUndefined();
+  });
+
+  it('未闭合的 == 不触发高亮', () => {
+    const doc = parse('这是 ==未闭合的文字');
+    const p = topBlocks(doc)[0] as MASTParagraphBlock;
+    // 不应有 highlight mark
+    for (const run of p.content) {
+      expect(run.marks?.highlight).toBeUndefined();
+    }
   });
 });

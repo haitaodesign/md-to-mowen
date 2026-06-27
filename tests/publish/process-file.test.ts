@@ -61,13 +61,13 @@ describe('dry-run 模式', () => {
     expect(client.editNote).not.toHaveBeenCalled();
   });
 
-  it('stats 正确统计段落数', async () => {
+  it('stats 正确统计段落数（含空段落）', async () => {
     const client = makeClient();
     const path = await writeTempMd('段落一\n\n段落二\n\n段落三');
 
     const result = await processFile(path, client, { dryRun: true });
 
-    expect(result.stats.paragraphs).toBe(3);
+    expect(result.stats.paragraphs).toBe(5); // 3 段落 + 2 空段落
     expect(result.stats.uploadedAssets).toBe(0);
   });
 

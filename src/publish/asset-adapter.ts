@@ -115,7 +115,7 @@ async function uploadBlock(block: MASTImageBlock, client: MowenClient, baseDir: 
 
   // Data URI
   if (src.startsWith('data:')) {
-    return uploadDataUri(src, client);
+    return uploadDataUri(src, client, block.alt);
   }
 
   // 远程 URL
@@ -127,7 +127,7 @@ async function uploadBlock(block: MASTImageBlock, client: MowenClient, baseDir: 
   const { resolve, isAbsolute } = await import('path');
   const decodedSrc = decodeURIComponent(src);
   const absPath = isAbsolute(decodedSrc) ? decodedSrc : resolve(baseDir, decodedSrc);
-  return uploadLocalFile(absPath, client);
+  return uploadLocalFile(absPath, client, block.alt);
 }
 
 /**
@@ -136,7 +136,8 @@ async function uploadBlock(block: MASTImageBlock, client: MowenClient, baseDir: 
  */
 async function uploadPngBuffer(buffer: Buffer, client: MowenClient): Promise<string> {
   const fileName = `table-${Date.now()}.png`;
-  const form = await client.uploadPrepare(1, fileName);
+  // 表格截图不带标题（传空文件名）
+  const form = await client.uploadPrepare(1, '');
 
   await withRetry(async () => {
     const formData = new FormData();

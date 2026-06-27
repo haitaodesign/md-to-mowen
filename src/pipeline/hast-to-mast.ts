@@ -12,6 +12,7 @@ import type {
   MASTTextRun,
   MASTInlineMarks,
 } from '../mast/types.js';
+import { HIGHLIGHT_MARKER } from './md-to-hast.js';
 
 // ── 转换选项 ───────────────────────────────────────────────────────────────────
 
@@ -49,21 +50,69 @@ function getTagName(node: Node): string | null {
 // ── 行内节点提取 ───────────────────────────────────────────────────────────────
 
 /**
+ * 处理含高亮标记（⸻）的文本节点。
+ * 将文本按 marker 分割，根据当前高亮状态决定哪些段落加 highlight mark。
+ *
+ * 例（hlActive=false）："普通 ⸻高亮⸻ 文本"
+ *   → [{ text: "普通" }, { text: "高亮", marks: { highlight } }, { text: " 文本" }]
+ *
+ * 例（hlActive=true，从前节点继承）："⸻ 混合。"
+ *   → [{ text: " 混合。" }]   ← marker 关闭高亮，后续文本正常
+ *
+ * @param hlActive 从前序节点继承的高亮状态
+ * @returns runs 生成的 TextRun 列表
+ * @returns lastHighlighted 末段是否仍处于高亮状态（供后续节点继承）
+ */
+function processTextWithHighlight(
+  text: string,
+  marks: MASTInlineMarks,
+  hlActive: boolean,
+): { runs: MASTTextRun[]; lastHighlighted: boolean } {
+  const parts = text.split(HIGHLIGHT_MARKER);
+  const runs: MASTTextRun[] = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    // 每个 marker 切换高亮状态（无论当前段是否为空）
+    if (i > 0) hlActive = !hlActive;
+    const part = parts[i];
+    if (!part) continue; // 跳过空段（marker 相邻或位于首尾）
+    const run: MASTTextRun = { type: 'text', text: part };
+    const merged = { ...marks, ...(hlActive ? { highlight: true } : {}) };
+    if (Object.keys(merged).length > 0) {
+      run.marks = merged;
+    }
+    runs.push(run);
+  }
+
+  return { runs, lastHighlighted: hlActive };
+}
+
+/**
  * 递归遍历 HAST 行内节点树，将嵌套标记展平为 MASTTextRun 列表。
  * 例：<strong><em>text</em></strong> → [{ text, marks: { bold, italic } }]
+ *
+ * @param highlightActive 是否继承前序节点的高亮状态（用于跨节点高亮）
  */
-function extractInline(nodes: Node[], marks: MASTInlineMarks = {}): MASTTextRun[] {
+function extractInline(nodes: Node[], marks: MASTInlineMarks = {}, highlightActive = false): MASTTextRun[] {
   const runs: MASTTextRun[] = [];
+  let hlActive = highlightActive;
 
   for (const node of nodes) {
     if (isText(node)) {
       if (node.value) {
-        const run: MASTTextRun = { type: 'text', text: node.value };
-        const activeMarks = { ...marks };
-        if (Object.keys(activeMarks).length > 0) {
-          run.marks = activeMarks;
+        if (node.value.includes(HIGHLIGHT_MARKER)) {
+          // 含高亮 marker：分割处理
+          const result = processTextWithHighlight(node.value, marks, hlActive);
+          runs.push(...result.runs);
+          hlActive = result.lastHighlighted;
+        } else {
+          const run: MASTTextRun = { type: 'text', text: node.value };
+          const activeMarks = hlActive ? { ...marks, highlight: true } : { ...marks };
+          if (Object.keys(activeMarks).length > 0) {
+            run.marks = activeMarks;
+          }
+          runs.push(run);
         }
-        runs.push(run);
       }
       continue;
     }
@@ -102,7 +151,13 @@ function extractInline(nodes: Node[], marks: MASTInlineMarks = {}): MASTTextRun[
         continue;
     }
 
-    runs.push(...extractInline(node.children ?? [], childMarks));
+    const childRuns = extractInline(node.children ?? [], childMarks, hlActive);
+    runs.push(...childRuns);
+    // 更新 hlActive：如果子节点处理后仍处于高亮状态，继承下去
+    const lastRun = childRuns[childRuns.length - 1];
+    if (lastRun) {
+      hlActive = !!lastRun.marks?.highlight;
+    }
   }
 
   return runs;
@@ -139,6 +194,7 @@ function marksEqual(a: MASTInlineMarks | undefined, b: MASTInlineMarks | undefin
     a.italic === b.italic &&
     a.code === b.code &&
     a.strikethrough === b.strikethrough &&
+    a.highlight === b.highlight &&
     a.link === b.link
   );
 }
@@ -424,12 +480,33 @@ function tableToMarkdown(tableEl: Element): string {
 export function hastToMast(hast: Root, opts: HastToMastOptions = {}): MASTDocument {
   const doc: MASTDocument = { blocks: {}, topLevel: [] };
 
+  let prevEndLine: number | null = null;
+
   for (const node of hast.children) {
+    // ── 空行插入：根据相邻元素的行号差推断空行数量 ─────────────────────
+    if (isElement(node)) {
+      const startLine = node.position?.start?.line;
+      if (startLine != null && prevEndLine != null) {
+        const gap = startLine - prevEndLine;
+        // gap > 1 表示中间有空行，每个空行对应一个空段落
+        for (let i = 1; i < gap; i++) {
+          const emptyBlock = makeEmptyParagraph();
+          doc.blocks[emptyBlock.id] = emptyBlock;
+          doc.topLevel.push(emptyBlock.id);
+        }
+      }
+    }
+
     if (!isElement(node)) continue;
     const blocks = convertBlock(node, doc, opts);
     for (const block of blocks) {
       doc.blocks[block.id] = block;
       doc.topLevel.push(block.id);
+    }
+
+    // 记录当前元素的结束行号
+    if (node.position?.end?.line != null) {
+      prevEndLine = node.position.end.line;
     }
   }
 
