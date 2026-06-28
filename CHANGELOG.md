@@ -1,3 +1,15 @@
+## [1.4.1](https://github.com/momolibrary/md-to-mowen/compare/v1.4.0...v1.4.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* CI 先构建再测试 ([dbf91b1](https://github.com/momolibrary/md-to-mowen/commit/dbf91b1fc69ce175040513a163679ca64ad4bfbd))
+* plugin.json 版本同步为 1.4.0，npm 包包含 skills 目录 ([1d236b1](https://github.com/momolibrary/md-to-mowen/commit/1d236b1ceea51971ffe46369fe585656de990837))
+* 修复 bin 路径、依赖和 CI 配置 ([04cbb1f](https://github.com/momolibrary/md-to-mowen/commit/04cbb1f1c7a8fd3bb9d053e6e0ed63344d0fe0cc))
+* 修复 ESLint 错误，更新测试期望值 ([777d690](https://github.com/momolibrary/md-to-mowen/commit/777d690c391ef63a8e012a5a1f02abfb1434a929))
+* 更新 Release 工作流脚本 ([3fb91a5](https://github.com/momolibrary/md-to-mowen/commit/3fb91a5f33c5f5bb079bcd28c557fe71f773bcee))
+* 更新测试期望值和 lock 文件 ([eac45f8](https://github.com/momolibrary/md-to-mowen/commit/eac45f86826a04a177860f82c3d9e54d54fcffa9))
+
 # [1.4.0](https://github.com/momolibrary/md-to-mowen/compare/v1.3.1...v1.4.0) (2026-06-28)
 
 
