@@ -14,7 +14,9 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+
     env:
+      # 跳过 Playwright 浏览器自动下载（CI 中测试使用 mock，不需要真实浏览器）
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
     steps:
@@ -29,8 +31,6 @@ jobs:
 
       - name: 安装依赖
         run: npm ci
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
       - name: PII 检查
         run: npm run lint:pii
