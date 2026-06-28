@@ -9,6 +9,7 @@ jobs:
   release:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     env:
       # 跳过 Playwright 浏览器自动下载（CI 中测试使用 mock，不需要真实浏览器）
