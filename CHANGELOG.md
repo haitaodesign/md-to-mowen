@@ -1,3 +1,23 @@
+# [1.4.0](https://github.com/momolibrary/md-to-mowen/compare/v1.3.1...v1.4.0) (2026-06-28)
+
+
+### Bug Fixes
+
+* 修复 -V 版本显示为 0.0.0 的问题 (#MAR-7) ([#15](https://github.com/momolibrary/md-to-mowen/issues/15)) ([2652cff](https://github.com/momolibrary/md-to-mowen/commit/2652cff9cff6f702e7e79446032fe8e133e8129e)), closes [#MAR-7](https://github.com/momolibrary/md-to-mowen/issues/MAR-7)
+* 修复 preprocessHighlight 导入冲突 ([8ef9f53](https://github.com/momolibrary/md-to-mowen/commit/8ef9f535cbf572440f0983cea7155fe27e287614))
+
+
+### Features
+
+* highlight 标记全链路支持 (closes [#27](https://github.com/momolibrary/md-to-mowen/issues/27)) ([#30](https://github.com/momolibrary/md-to-mowen/issues/30)) ([60d23ad](https://github.com/momolibrary/md-to-mowen/commit/60d23ade1553d9914282960c98dfbca88261b3f7))
+* PDF 嵌入 (pdf) 块类型支持 (closes [#29](https://github.com/momolibrary/md-to-mowen/issues/29)) ([#32](https://github.com/momolibrary/md-to-mowen/issues/32)) ([468d1ca](https://github.com/momolibrary/md-to-mowen/commit/468d1ca8109aa22a359f9a7242195b9062d0b2fe))
+* status 命令 — 查看已发布笔记状态 (closes [#20](https://github.com/momolibrary/md-to-mowen/issues/20)) ([#23](https://github.com/momolibrary/md-to-mowen/issues/23)) ([67398ad](https://github.com/momolibrary/md-to-mowen/commit/67398ad9638b654b5c60a1f34566a09c091b4a41))
+* 内链笔记 (note) 块类型支持 (closes [#28](https://github.com/momolibrary/md-to-mowen/issues/28)) ([#31](https://github.com/momolibrary/md-to-mowen/issues/31)) ([034cfed](https://github.com/momolibrary/md-to-mowen/commit/034cfedf11572e748a047d85e59f1c0deaa36130))
+* 批量发布进度条与 ETA 显示 (closes [#21](https://github.com/momolibrary/md-to-mowen/issues/21)) ([#24](https://github.com/momolibrary/md-to-mowen/issues/24)) ([d5b9167](https://github.com/momolibrary/md-to-mowen/commit/d5b91677455de3b8fde882182babf8bcdd01b31f))
+* 支持空行保留、高亮语法(==text==)和图片默认无标题 ([4db6e3a](https://github.com/momolibrary/md-to-mowen/commit/4db6e3a03fe81af7daea88633e37321006beafb8)), closes [#20](https://github.com/momolibrary/md-to-mowen/issues/20)
+* 有损转换警告机制 (closes [#22](https://github.com/momolibrary/md-to-mowen/issues/22)) ([#25](https://github.com/momolibrary/md-to-mowen/issues/25)) ([17633dc](https://github.com/momolibrary/md-to-mowen/commit/17633dce0d45f5046ec6b8038caa4cdad0cfde9f))
+* 添加端到端开发 skill (e2e-dev) ([46da7c2](https://github.com/momolibrary/md-to-mowen/commit/46da7c2cb25c89f554ea3e22ee491ce168d4d529))
+
 ## [1.3.1](https://github.com/momolibrary/md-to-mowen/compare/v1.3.0...v1.3.1) (2026-05-28)
 
 
