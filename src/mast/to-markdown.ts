@@ -6,6 +6,8 @@ import type {
   MASTImageBlock,
   MASTAudioBlock,
   MASTCodeBlock,
+  MASTNoteBlock,
+  MASTPdfBlock,
   MASTTextRun,
   MASTInlineMarks,
 } from './types.js';
@@ -53,6 +55,10 @@ function serializeBlock(block: MASTBlockNode, doc: MASTDocument): string {
       return serializeAudio(block);
     case 'codeblock':
       return serializeCodeBlock(block);
+    case 'note':
+      return serializeNote(block);
+    case 'pdf':
+      return serializePdf(block);
   }
 }
 
@@ -91,6 +97,14 @@ function serializeCodeBlock(block: MASTCodeBlock): string {
   return '```' + lang + '\n' + block.content + '\n```';
 }
 
+function serializeNote(block: MASTNoteBlock): string {
+  return `![[note:${block.noteId}]]`;
+}
+
+function serializePdf(block: MASTPdfBlock): string {
+  return `![[pdf:${block.src}]]`;
+}
+
 function serializeTextRun(run: MASTTextRun): string {
   if (!run.marks) return run.text;
 
@@ -112,6 +126,9 @@ function serializeTextRun(run: MASTTextRun): string {
 
   // italic
   if (run.marks.italic) text = `*${text}*`;
+
+  // highlight
+  if (run.marks.highlight) text = `==${text}==`;
 
   // link 最后包裹（outermost）
   if (run.marks.link) text = `[${text}](${run.marks.link})`;

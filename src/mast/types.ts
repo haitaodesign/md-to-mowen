@@ -8,7 +8,14 @@ export interface MASTDocument {
   topLevel: MASTBlockId[];
 }
 
-export type MASTBlockNode = MASTParagraphBlock | MASTQuoteBlock | MASTImageBlock | MASTAudioBlock | MASTCodeBlock;
+export type MASTBlockNode =
+  | MASTParagraphBlock
+  | MASTQuoteBlock
+  | MASTImageBlock
+  | MASTAudioBlock
+  | MASTCodeBlock
+  | MASTNoteBlock
+  | MASTPdfBlock;
 
 export interface MASTParagraphBlock {
   id: MASTBlockId;
@@ -45,6 +52,19 @@ export interface MASTCodeBlock {
   type: 'codeblock';
   language: string; // 语言标识（如 js, ts, python）
   content: string; // 代码内容（保留原始换行）
+}
+
+export interface MASTNoteBlock {
+  id: MASTBlockId;
+  type: 'note';
+  noteId: string; // 被引用的笔记 ID
+}
+
+export interface MASTPdfBlock {
+  id: MASTBlockId;
+  type: 'pdf';
+  src: string; // 本地路径或 fileId（上传前/后）
+  uuid?: string; // 上传后的 fileId（资源阶段后）
 }
 
 export type MASTInlineNode = MASTTextRun;

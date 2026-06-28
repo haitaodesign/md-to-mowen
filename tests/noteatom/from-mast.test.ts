@@ -88,7 +88,7 @@ describe('行内标记序列化', () => {
     expect(types).toContain('italic');
   });
 
-  it('标记顺序：code → strikethrough → bold → highlight → italic → link', () => {
+  it('标记顺序：code → strikethrough → bold → italic → highlight → link', () => {
     const na = mastToNoteAtom(
       paraWithMarks({
         bold: true,
@@ -101,7 +101,7 @@ describe('行内标记序列化', () => {
     );
     const p = na.content[0] as NoteAtomParagraph;
     const types = p.content[0].marks!.map((m) => m.type);
-    expect(types).toEqual(['code', 'strikethrough', 'bold', 'highlight', 'italic', 'link']);
+    expect(types).toEqual(['code', 'strikethrough', 'bold', 'italic', 'highlight', 'link']);
   });
 });
 

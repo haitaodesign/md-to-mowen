@@ -7,6 +7,8 @@ import type {
   MASTImageBlock,
   MASTAudioBlock,
   MASTCodeBlock,
+  MASTNoteBlock,
+  MASTPdfBlock,
   MASTTextRun,
   MASTInlineMarks,
 } from '../mast/types.js';
@@ -18,6 +20,8 @@ import type {
   NoteAtomImage,
   NoteAtomAudio,
   NoteAtomCodeBlock,
+  NoteAtomNote,
+  NoteAtomPdf,
   NoteAtomTextNode,
   NoteAtomMark,
 } from './types.js';
@@ -58,6 +62,10 @@ function convertNode(node: NoteAtomBlockNode, blocks: Record<MASTBlockId, MASTBl
       return convertAudio(node, blocks);
     case 'codeblock':
       return convertCodeBlock(node, blocks);
+    case 'note':
+      return convertNote(node, blocks);
+    case 'pdf':
+      return convertPdf(node, blocks);
   }
 }
 
@@ -122,6 +130,29 @@ function convertCodeBlock(block: NoteAtomCodeBlock, blocks: Record<MASTBlockId, 
   return id;
 }
 
+function convertNote(block: NoteAtomNote, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId {
+  const id = newId();
+  const mast: MASTNoteBlock = {
+    id,
+    type: 'note',
+    noteId: block.attrs.uuid,
+  };
+  blocks[id] = mast;
+  return id;
+}
+
+function convertPdf(block: NoteAtomPdf, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId {
+  const id = newId();
+  const mast: MASTPdfBlock = {
+    id,
+    type: 'pdf',
+    src: `mowen://file/${block.attrs.uuid}`,
+    uuid: block.attrs.uuid,
+  };
+  blocks[id] = mast;
+  return id;
+}
+
 // ── 行内节点转换 ───────────────────────────────────────────────────────────────
 
 function convertTextRun(run: NoteAtomTextNode): MASTTextRun {
@@ -142,6 +173,9 @@ function convertTextRun(run: NoteAtomTextNode): MASTTextRun {
         break;
       case 'strikethrough':
         marks.strikethrough = true;
+        break;
+      case 'highlight':
+        marks.highlight = true;
         break;
       case 'link':
         marks.link = mark.attrs.href;

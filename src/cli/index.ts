@@ -154,6 +154,7 @@ program
   .option('--cache-dir <dir>', '保存各阶段产物的目录（调试用）')
   .option('--code-block-style <style>', '代码块样式：paragraph 或 codeblock')
   .option('--no-recursive', '批量发布时不递归扫描子目录', false)
+  .option('--quiet', '静默模式：抑制进度条，仅输出最终汇总', false)
   .action(async (opts) => {
     const apiKey = getApiKey();
     if (!apiKey && !opts.dryRun) {
@@ -210,6 +211,7 @@ program
           dryRun: opts.dryRun,
           cacheDir: resolvedConfig.cacheDir,
           recursive: !opts.noRecursive,
+          quiet: opts.quiet,
         });
 
         // 批量模式下，有失败则 exit 1
@@ -239,6 +241,7 @@ program
             dryRun: opts.dryRun,
             cacheDir: resolvedConfig.cacheDir,
             codeBlockStyle: resolvedConfig.codeBlockStyle,
+            quiet: opts.quiet,
           });
 
           if (!result.dryRun && result.noteId) {
@@ -371,6 +374,47 @@ program
     } catch (err) {
       console.error('设置失败：', err instanceof Error ? err.message : err);
       process.exit(1);
+    }
+  });
+
+// ── status ───────────────────────────────────────────────────────────────────
+
+program
+  .command('status')
+  .description('查看已发布笔记的状态')
+  .option('-i, --input <path>', '查看指定文件的发布状态')
+  .option('--json', '输出 JSON 格式')
+  .action(async (opts) => {
+    const metaPath = findMetadataPath();
+    const metaStore = readMetadata(metaPath);
+    const cwd = process.cwd();
+
+    if (opts.input) {
+      // 单文件查询
+      const { lookupFileStatus, formatStatusTable, formatStatusJson } = await import('./status.js');
+      const absInput = resolve(opts.input);
+      const entry = lookupFileStatus(metaStore, absInput, cwd);
+
+      if (!entry) {
+        console.error(`未发布：${opts.input}（元数据中无记录）`);
+        process.exit(1);
+      }
+
+      if (opts.json) {
+        console.log(formatStatusJson([entry]));
+      } else {
+        console.log(formatStatusTable([entry]));
+      }
+    } else {
+      // 列出所有
+      const { listAllNotes, formatStatusTable, formatStatusJson } = await import('./status.js');
+      const entries = listAllNotes(metaStore, cwd);
+
+      if (opts.json) {
+        console.log(formatStatusJson(entries));
+      } else {
+        console.log(formatStatusTable(entries));
+      }
     }
   });
 

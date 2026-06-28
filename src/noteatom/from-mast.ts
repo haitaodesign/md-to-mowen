@@ -6,6 +6,8 @@ import type {
   MASTParagraphBlock,
   MASTQuoteBlock,
   MASTCodeBlock,
+  MASTNoteBlock,
+  MASTPdfBlock,
   MASTInlineMarks,
 } from '../mast/types.js';
 import type {
@@ -15,6 +17,8 @@ import type {
   NoteAtomImage,
   NoteAtomAudio,
   NoteAtomCodeBlock,
+  NoteAtomNote,
+  NoteAtomPdf,
   NoteAtomTextNode,
   NoteAtomMark,
 } from './types.js';
@@ -51,6 +55,10 @@ function convertBlock(block: MASTBlockNode, doc: MASTDocument): NoteAtomBlockNod
       return [convertAudio(block)];
     case 'codeblock':
       return [convertCodeBlock(block)];
+    case 'note':
+      return [convertNote(block)];
+    case 'pdf':
+      return [convertPdf(block)];
   }
 }
 
@@ -123,6 +131,27 @@ function convertCodeBlock(block: MASTCodeBlock): NoteAtomCodeBlock {
   };
 }
 
+function convertNote(block: MASTNoteBlock): NoteAtomNote {
+  return {
+    type: 'note',
+    attrs: {
+      uuid: block.noteId,
+    },
+  };
+}
+
+function convertPdf(block: MASTPdfBlock): NoteAtomPdf {
+  if (!block.uuid) {
+    throw new Error(`MASTPdfBlock ${block.id} has no uuid — run asset processing before serialization`);
+  }
+  return {
+    type: 'pdf',
+    attrs: {
+      uuid: block.uuid,
+    },
+  };
+}
+
 // ── 行内节点转换 ───────────────────────────────────────────────────────────────
 
 function convertTextRun(run: { type: 'text'; text: string; marks?: MASTInlineMarks }): NoteAtomTextNode {
@@ -132,12 +161,12 @@ function convertTextRun(run: { type: 'text'; text: string; marks?: MASTInlineMar
 
   const marks: NoteAtomMark[] = [];
 
-  // 按优先级顺序：code → strikethrough → bold → highlight → italic → link
+  // 按优先级顺序：code → strikethrough → bold → italic → highlight → link
   if (run.marks.code) marks.push({ type: 'code' });
   if (run.marks.strikethrough) marks.push({ type: 'strikethrough' });
   if (run.marks.bold) marks.push({ type: 'bold' });
-  if (run.marks.highlight) marks.push({ type: 'highlight' });
   if (run.marks.italic) marks.push({ type: 'italic' });
+  if (run.marks.highlight) marks.push({ type: 'highlight' });
   if (run.marks.link) marks.push({ type: 'link', attrs: { href: run.marks.link } });
 
   if (marks.length > 0) node.marks = marks;

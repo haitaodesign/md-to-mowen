@@ -8,17 +8,32 @@ import type {
   MASTImageBlock,
   MASTAudioBlock,
   MASTCodeBlock,
+  MASTNoteBlock,
+  MASTPdfBlock,
   MASTInlineNode,
   MASTTextRun,
   MASTInlineMarks,
 } from '../mast/types.js';
 import { HIGHLIGHT_MARKER } from './md-to-hast.js';
 
-// ── 转换选项 ───────────────────────────────────────────────────────────────────
+// ── 转换选项与结果 ─────────────────────────────────────────────────────────────
 
 export interface HastToMastOptions {
   /** 代码块样式：paragraph（转为段落）或 codeblock（转为代码块节点） */
   codeBlockStyle?: 'paragraph' | 'codeblock';
+}
+
+export type ConversionWarningType = 'heading' | 'task-list' | 'footnote';
+
+export interface ConversionWarning {
+  type: ConversionWarningType;
+  message: string;
+  source?: string;
+}
+
+export interface HastToMastResult {
+  doc: MASTDocument;
+  warnings: ConversionWarning[];
 }
 
 // ── ID 生成 ────────────────────────────────────────────────────────────────────
@@ -135,6 +150,9 @@ function extractInline(nodes: Node[], marks: MASTInlineMarks = {}, highlightActi
       case 'del':
         childMarks.strikethrough = true;
         break;
+      case 'mark':
+        childMarks.highlight = true;
+        break;
       case 'a': {
         const href = (node.properties?.href as string) ?? '';
         // 忽略纯锚点链接（fragment links）
@@ -213,7 +231,12 @@ function makeEmptyParagraph(): MASTParagraphBlock {
  * 将 HAST 元素转换为一组 MAST 块节点。
  * 返回数组是因为某些元素（如列表）会展开为多个块。
  */
-function convertBlock(node: Element, doc: MASTDocument, opts: HastToMastOptions = {}): MASTBlockNode[] {
+function convertBlock(
+  node: Element,
+  doc: MASTDocument,
+  opts: HastToMastOptions = {},
+  warnings: ConversionWarning[] = [],
+): MASTBlockNode[] {
   const tag = node.tagName;
 
   // ── 标题 ──────────────────────────────────────────────────────────────────
@@ -222,6 +245,7 @@ function convertBlock(node: Element, doc: MASTDocument, opts: HastToMastOptions 
     // H1–H6 全部 → bold paragraph
     const extraMarks: MASTInlineMarks = { bold: true };
     const content = extractInlineContent(node, extraMarks);
+    warnings.push({ type: 'heading', message: `H${level} 标题转换为加粗段落（墨问不支持标题层级）`, source: tag });
     return [makeParagraph(content)];
   }
 
@@ -242,6 +266,30 @@ function convertBlock(node: Element, doc: MASTDocument, opts: HastToMastOptions 
           type: 'audio',
           src,
           showNote,
+        };
+        return [block];
+      }
+
+      // 内链笔记约定：alt 以 "note:" 开头，src 以 "note:" 开头
+      if (alt.startsWith('note:') && src.startsWith('note:')) {
+        const noteId = alt.slice('note:'.length).trim();
+        const block: MASTNoteBlock = {
+          id: newId(),
+          type: 'note',
+          noteId,
+        };
+        return [block];
+      }
+
+      // PDF 嵌入约定：alt 以 "pdf:" 开头，src 以 "pdf:" 开头
+      if (alt.startsWith('pdf:') && src.startsWith('pdf:')) {
+        const pdfSrc = src.slice('pdf:'.length).trim();
+        const block: MASTPdfBlock = {
+          id: newId(),
+          type: 'pdf',
+          src: pdfSrc,
+          // 如果 src 看起来像 fileId（包含 -TMP 后缀），直接设为 uuid
+          ...(pdfSrc.includes('-TMP') ? { uuid: pdfSrc } : {}),
         };
         return [block];
       }
@@ -267,7 +315,7 @@ function convertBlock(node: Element, doc: MASTDocument, opts: HastToMastOptions 
 
     for (const child of node.children) {
       if (!isElement(child)) continue;
-      const childBlocks = convertBlock(child, doc, opts);
+      const childBlocks = convertBlock(child, doc, opts, warnings);
       for (const b of childBlocks) {
         doc.blocks[b.id] = b;
         childIds.push(b.id);
@@ -284,12 +332,12 @@ function convertBlock(node: Element, doc: MASTDocument, opts: HastToMastOptions 
 
   // ── 无序列表 ──────────────────────────────────────────────────────────────
   if (tag === 'ul') {
-    return convertList(node, doc, opts, false, 0);
+    return convertList(node, doc, opts, false, 0, warnings);
   }
 
   // ── 有序列表 ──────────────────────────────────────────────────────────────
   if (tag === 'ol') {
-    return convertList(node, doc, opts, true, 0);
+    return convertList(node, doc, opts, true, 0, warnings);
   }
 
   // ── 代码块 ────────────────────────────────────────────────────────────────
@@ -357,10 +405,22 @@ function convertBlock(node: Element, doc: MASTDocument, opts: HastToMastOptions 
     const blocks: MASTBlockNode[] = [];
     for (const child of node.children) {
       if (isElement(child)) {
-        blocks.push(...convertBlock(child, doc, opts));
+        blocks.push(...convertBlock(child, doc, opts, warnings));
       }
     }
     return blocks;
+  }
+
+  // ── 脚注检测 ────────────────────────────────────────────────────────────
+  if (tag === 'sup' && node.properties?.id && String(node.properties.id).startsWith('fnref-')) {
+    warnings.push({ type: 'footnote', message: '脚注引用转换为纯文本（墨问不支持脚注）', source: 'footnote-ref' });
+    const content = extractInlineContent(node);
+    return content.length > 0 ? [makeParagraph(content)] : [];
+  }
+
+  if (tag === 'section' && node.properties?.['data-footnotes'] !== undefined) {
+    warnings.push({ type: 'footnote', message: '脚注定义被丢弃（墨问不支持脚注）', source: 'footnote-def' });
+    return [];
   }
 
   // 其他未知标签：尝试提取文本
@@ -379,6 +439,7 @@ function convertList(
   opts: HastToMastOptions,
   ordered: boolean,
   depth: number,
+  warnings: ConversionWarning[] = [],
 ): MASTBlockNode[] {
   const blocks: MASTBlockNode[] = [];
   let itemIndex = 1;
@@ -386,6 +447,18 @@ function convertList(
 
   for (const child of listEl.children) {
     if (!isElement(child) || child.tagName !== 'li') continue;
+
+    // 检测 task list（li 内含 <input type="checkbox">）
+    const hasCheckbox = child.children.some(
+      (c) => isElement(c) && (c as Element).tagName === 'input' && (c as Element).properties?.type === 'checkbox',
+    );
+    if (hasCheckbox) {
+      warnings.push({
+        type: 'task-list',
+        message: '任务列表项转换为纯文本（墨问不支持 checkbox）',
+        source: 'task-list',
+      });
+    }
 
     const prefix = ordered ? `${indent}${itemIndex}. ` : `${indent}• `;
     itemIndex++;
@@ -403,9 +476,9 @@ function convertList(
       }
 
       if (liChild.tagName === 'ul') {
-        nestedBlocks.push(...convertList(liChild, doc, opts, false, depth + 1));
+        nestedBlocks.push(...convertList(liChild, doc, opts, false, depth + 1, warnings));
       } else if (liChild.tagName === 'ol') {
-        nestedBlocks.push(...convertList(liChild, doc, opts, true, depth + 1));
+        nestedBlocks.push(...convertList(liChild, doc, opts, true, depth + 1, warnings));
       } else if (liChild.tagName === 'p') {
         paragraphContent.push(...extractInlineContent(liChild));
       } else {
@@ -476,9 +549,11 @@ function tableToMarkdown(tableEl: Element): string {
  *
  * @param hast HAST Root 节点
  * @param opts 转换选项
+ * @returns 包含文档和转换警告的结果对象
  */
-export function hastToMast(hast: Root, opts: HastToMastOptions = {}): MASTDocument {
+export function hastToMast(hast: Root, opts: HastToMastOptions = {}): HastToMastResult {
   const doc: MASTDocument = { blocks: {}, topLevel: [] };
+  const warnings: ConversionWarning[] = [];
 
   let prevEndLine: number | null = null;
 
@@ -498,7 +573,7 @@ export function hastToMast(hast: Root, opts: HastToMastOptions = {}): MASTDocume
     }
 
     if (!isElement(node)) continue;
-    const blocks = convertBlock(node, doc, opts);
+    const blocks = convertBlock(node, doc, opts, warnings);
     for (const block of blocks) {
       doc.blocks[block.id] = block;
       doc.topLevel.push(block.id);
@@ -510,5 +585,5 @@ export function hastToMast(hast: Root, opts: HastToMastOptions = {}): MASTDocume
     }
   }
 
-  return doc;
+  return { doc, warnings };
 }
