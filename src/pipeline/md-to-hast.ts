@@ -3,7 +3,6 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import type { Root, Element, Node } from 'hast';
-import { preprocessHighlight } from './remark-highlight.js';
 
 /** 高亮标记字符（U+2E3B THREE-EM DASH），用作 ==text== 的中间占位符 */
 export const HIGHLIGHT_MARKER = '⸻';
