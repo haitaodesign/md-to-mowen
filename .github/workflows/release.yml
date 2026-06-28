@@ -32,6 +32,8 @@ jobs:
 
       - name: 安装依赖
         run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
       - name: PII 检查
         run: npm run lint:pii
