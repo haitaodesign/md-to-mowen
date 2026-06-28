@@ -31,8 +31,8 @@ jobs:
       - name: Type check
         run: npm run check
 
-      - name: Test
-        run: npm run test:coverage
-
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm run test:coverage
