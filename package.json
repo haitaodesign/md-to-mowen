@@ -9,7 +9,8 @@
   "files": [
     "dist",
     "!dist/out",
-    ".claude-plugin"
+    ".claude-plugin",
+    ".claude/skills"
   ],
   "exports": {
     ".": "./dist/publish/index.js",
