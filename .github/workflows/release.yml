@@ -12,7 +12,6 @@ jobs:
     timeout-minutes: 15
 
     env:
-      # 跳过 Playwright 浏览器自动下载（CI 中测试使用 mock，不需要真实浏览器）
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
     permissions:
@@ -32,27 +31,24 @@ jobs:
       - name: 配置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: npm
           registry-url: https://registry.npmjs.org
 
       - name: 安装依赖
         run: npm ci
 
-      - name: PII 检查
-        run: npm run lint:pii
-
-      - name: 格式检查
-        run: npx prettier --check .
+      - name: Lint
+        run: npm run lint
 
       - name: 类型检查
         run: npm run check
 
-      - name: 单元测试
-        run: npm test
-
       - name: 构建
         run: npm run build
+
+      - name: 单元测试
+        run: npm test
 
       - name: 发布（semantic-release）
         env:
