@@ -1,0 +1,134 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "链接测试",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "普通链接："
+        },
+        {
+          "type": "text",
+          "text": "Example",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://example.com"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "裸 URL："
+        },
+        {
+          "type": "text",
+          "text": "https://api.example.com/v1",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://api.example.com/v1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "混合：访问 "
+        },
+        {
+          "type": "text",
+          "text": "文档",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://docs.example.com"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": " 或 "
+        },
+        {
+          "type": "text",
+          "text": "https://github.com",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://github.com"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": ""
+        }
+      ]
+    }
+  ]
+}

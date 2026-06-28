@@ -1,0 +1,21 @@
+# Source files
+src/
+tests/
+.github/
+
+# Config files
+tsconfig.json
+eslint.config.js
+.prettierrc
+vitest.config.ts
+
+# Other
+.gitignore
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Keep
+# dist/
+# package.json
+# README.md
+# LICENSE

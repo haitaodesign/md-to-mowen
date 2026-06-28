@@ -1,33 +1,36 @@
 {
   "name": "md-to-mowen",
   "version": "1.4.0",
-  "description": "将 Markdown（GFM）转换为墨问笔记的 CLI 工具",
   "type": "module",
+  "description": "将 Markdown（GFM）转换为墨问笔记的 CLI 工具",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
-    "md-to-mowen": "dist/cli/index.js"
+    "md-to-mowen": "./dist/cli/index.js"
   },
   "files": [
     "dist",
-    "!dist/out",
     ".claude-plugin",
     ".claude/skills"
   ],
-  "exports": {
-    ".": "./dist/publish/index.js",
-    "./publish": "./dist/publish/index.js",
-    "./noteatom": "./dist/noteatom/index.js"
-  },
   "scripts": {
-    "lint:pii": "node scripts/lint-pii.mjs",
-    "lint": "npm run lint:pii && prettier --check .",
-    "format": "prettier . --write",
-    "check": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc && chmod +x dist/cli/index.js",
+    "dev": "tsc --watch",
+    "lint": "eslint src tests --ext .ts",
+    "lint:fix": "eslint src tests --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc -p tsconfig.json && sh scripts/postbuild.sh && chmod +x dist/cli/index.js",
+    "test:coverage": "vitest run --coverage",
     "release": "semantic-release",
     "prepare": "husky",
-    "install:browser": "npx playwright install chromium"
+    "install:browser": "npx playwright install chromium",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/momolibrary/md-to-mowen.git"
   },
   "keywords": [
     "markdown",
@@ -35,33 +38,42 @@
     "墨问",
     "cli"
   ],
+  "author": "",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/momolibrary/md-to-mowen/issues"
+  },
+  "homepage": "https://github.com/momolibrary/md-to-mowen#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "unified": "^11.0.0",
     "remark-parse": "^11.0.0",
     "remark-gfm": "^4.0.0",
     "remark-rehype": "^11.0.0",
-    "rehype-stringify": "^10.0.0",
-    "unist-util-visit": "^5.0.0",
     "hast-util-to-string": "^3.0.0",
     "commander": "^12.0.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "playwright": "^1.40.0"
   },
   "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "semantic-release": "^24.0.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.6",
     "@semantic-release/npm": "^12.0.2",
-    "@semantic-release/release-notes-generator": "^14.1.0",
-    "@types/node": "^20.0.0",
-    "husky": "^9.0.0",
-    "lint-staged": "^15.0.0",
-    "prettier": "^3.0.0",
-    "semantic-release": "^24.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0",
-    "playwright": "^1.40.0"
+    "@semantic-release/release-notes-generator": "^14.1.0"
   }
 }
