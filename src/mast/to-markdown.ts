@@ -9,7 +9,6 @@ import type {
   MASTNoteBlock,
   MASTPdfBlock,
   MASTTextRun,
-  MASTInlineMarks,
 } from './types.js';
 
 /**

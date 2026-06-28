@@ -58,10 +58,6 @@ function isText(node: Node): node is Text {
   return node.type === 'text';
 }
 
-function getTagName(node: Node): string | null {
-  return isElement(node) ? node.tagName : null;
-}
-
 // ── 行内节点提取 ───────────────────────────────────────────────────────────────
 
 /**
@@ -81,7 +77,7 @@ function getTagName(node: Node): string | null {
 function processTextWithHighlight(
   text: string,
   marks: MASTInlineMarks,
-  hlActive: boolean,
+  hlActive: boolean
 ): { runs: MASTTextRun[]; lastHighlighted: boolean } {
   const parts = text.split(HIGHLIGHT_MARKER);
   const runs: MASTTextRun[] = [];
@@ -108,7 +104,11 @@ function processTextWithHighlight(
  *
  * @param highlightActive 是否继承前序节点的高亮状态（用于跨节点高亮）
  */
-function extractInline(nodes: Node[], marks: MASTInlineMarks = {}, highlightActive = false): MASTTextRun[] {
+function extractInline(
+  nodes: Node[],
+  marks: MASTInlineMarks = {},
+  highlightActive = false
+): MASTTextRun[] {
   const runs: MASTTextRun[] = [];
   let hlActive = highlightActive;
 
@@ -135,7 +135,7 @@ function extractInline(nodes: Node[], marks: MASTInlineMarks = {}, highlightActi
     if (!isElement(node)) continue;
 
     const tag = node.tagName;
-    let childMarks = { ...marks };
+    const childMarks = { ...marks };
 
     switch (tag) {
       case 'strong':
@@ -235,7 +235,7 @@ function convertBlock(
   node: Element,
   doc: MASTDocument,
   opts: HastToMastOptions = {},
-  warnings: ConversionWarning[] = [],
+  warnings: ConversionWarning[] = []
 ): MASTBlockNode[] {
   const tag = node.tagName;
 
@@ -245,14 +245,20 @@ function convertBlock(
     // H1–H6 全部 → bold paragraph
     const extraMarks: MASTInlineMarks = { bold: true };
     const content = extractInlineContent(node, extraMarks);
-    warnings.push({ type: 'heading', message: `H${level} 标题转换为加粗段落（墨问不支持标题层级）`, source: tag });
+    warnings.push({
+      type: 'heading',
+      message: `H${level} 标题转换为加粗段落（墨问不支持标题层级）`,
+      source: tag,
+    });
     return [makeParagraph(content)];
   }
 
   // ── 段落 ──────────────────────────────────────────────────────────────────
   if (tag === 'p') {
     // 检查段落内是否只有一个 img（独立图片或音频占位）
-    const imgChild = node.children.find((c) => isElement(c) && (c as Element).tagName === 'img') as Element | undefined;
+    const imgChild = node.children.find((c) => isElement(c) && (c as Element).tagName === 'img') as
+      | Element
+      | undefined;
 
     if (imgChild) {
       const src = (imgChild.properties?.src as string) ?? '';
@@ -342,7 +348,9 @@ function convertBlock(
 
   // ── 代码块 ────────────────────────────────────────────────────────────────
   if (tag === 'pre') {
-    const codeEl = node.children.find((c) => isElement(c) && (c as Element).tagName === 'code') as Element | undefined;
+    const codeEl = node.children.find((c) => isElement(c) && (c as Element).tagName === 'code') as
+      | Element
+      | undefined;
 
     const rawText = codeEl ? extractTextContent(codeEl) : extractTextContent(node);
 
@@ -354,7 +362,7 @@ function convertBlock(
         : [codeEl.properties.className as string];
       // 常见格式：language-js, lang-js, js 等
       const langClass = classNames.find(
-        (c) => typeof c === 'string' && (c.startsWith('language-') || c.startsWith('lang-')),
+        (c) => typeof c === 'string' && (c.startsWith('language-') || c.startsWith('lang-'))
       );
       if (langClass) {
         language = langClass.replace(/^language-|^lang-/, '');
@@ -377,7 +385,9 @@ function convertBlock(
 
     // 默认 paragraph 模式：每行转为带 code 标记的 paragraph
     const lines = rawText.replace(/\n$/, '').split('\n');
-    return lines.map((line) => makeParagraph([{ type: 'text', text: line, marks: { code: true } }]));
+    return lines.map((line) =>
+      makeParagraph([{ type: 'text', text: line, marks: { code: true } }])
+    );
   }
 
   // ── 表格 ──────────────────────────────────────────────────────────────────
@@ -413,13 +423,21 @@ function convertBlock(
 
   // ── 脚注检测 ────────────────────────────────────────────────────────────
   if (tag === 'sup' && node.properties?.id && String(node.properties.id).startsWith('fnref-')) {
-    warnings.push({ type: 'footnote', message: '脚注引用转换为纯文本（墨问不支持脚注）', source: 'footnote-ref' });
+    warnings.push({
+      type: 'footnote',
+      message: '脚注引用转换为纯文本（墨问不支持脚注）',
+      source: 'footnote-ref',
+    });
     const content = extractInlineContent(node);
     return content.length > 0 ? [makeParagraph(content)] : [];
   }
 
   if (tag === 'section' && node.properties?.['data-footnotes'] !== undefined) {
-    warnings.push({ type: 'footnote', message: '脚注定义被丢弃（墨问不支持脚注）', source: 'footnote-def' });
+    warnings.push({
+      type: 'footnote',
+      message: '脚注定义被丢弃（墨问不支持脚注）',
+      source: 'footnote-def',
+    });
     return [];
   }
 
@@ -439,7 +457,7 @@ function convertList(
   opts: HastToMastOptions,
   ordered: boolean,
   depth: number,
-  warnings: ConversionWarning[] = [],
+  warnings: ConversionWarning[] = []
 ): MASTBlockNode[] {
   const blocks: MASTBlockNode[] = [];
   let itemIndex = 1;
@@ -450,7 +468,10 @@ function convertList(
 
     // 检测 task list（li 内含 <input type="checkbox">）
     const hasCheckbox = child.children.some(
-      (c) => isElement(c) && (c as Element).tagName === 'input' && (c as Element).properties?.type === 'checkbox',
+      (c) =>
+        isElement(c) &&
+        (c as Element).tagName === 'input' &&
+        (c as Element).properties?.type === 'checkbox'
     );
     if (hasCheckbox) {
       warnings.push({
@@ -488,7 +509,8 @@ function convertList(
 
     // 构建带前缀的段落
     const prefixRun: MASTTextRun = { type: 'text', text: prefix };
-    const content: MASTInlineNode[] = paragraphContent.length > 0 ? [prefixRun, ...paragraphContent] : [prefixRun];
+    const content: MASTInlineNode[] =
+      paragraphContent.length > 0 ? [prefixRun, ...paragraphContent] : [prefixRun];
 
     blocks.push(makeParagraph(content));
     blocks.push(...nestedBlocks);

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'fs';
-import { resolve, join } from 'path';
+import { join } from 'path';
 import { homedir } from 'os';
 
 // ── 配置类型定义 ───────────────────────────────────────────────────────────────
@@ -49,7 +49,9 @@ function readEnvConfig(): Partial<MdToMowenConfig> {
     if (codeBlockStyle === 'paragraph' || codeBlockStyle === 'codeblock') {
       config.codeBlockStyle = codeBlockStyle;
     } else {
-      console.warn(`[config] MOWEN_CODE_BLOCK_STYLE="${codeBlockStyle}" 无效，忽略（支持：paragraph, codeblock）`);
+      console.warn(
+        `[config] MOWEN_CODE_BLOCK_STYLE="${codeBlockStyle}" 无效，忽略（支持：paragraph, codeblock）`
+      );
     }
   }
 
@@ -93,7 +95,9 @@ function loadConfigFile(path: string, label: string): ConfigFileResult | null {
       if (style === 'paragraph' || style === 'codeblock') {
         validConfig.codeBlockStyle = style;
       } else {
-        console.warn(`[config] ${label}: codeBlockStyle="${style}" 无效，忽略（支持：paragraph, codeblock）`);
+        console.warn(
+          `[config] ${label}: codeBlockStyle="${style}" 无效，忽略（支持：paragraph, codeblock）`
+        );
       }
     }
 
@@ -134,7 +138,10 @@ export function getConfigPaths(projectRoot?: string): { project: string; user: s
  * @param cliOverrides CLI 参数覆盖（最高优先级）
  * @param projectRoot 项目根目录（用于查找项目级配置）
  */
-export function loadConfig(cliOverrides: Partial<MdToMowenConfig> = {}, projectRoot?: string): ResolvedConfig {
+export function loadConfig(
+  cliOverrides: Partial<MdToMowenConfig> = {},
+  projectRoot?: string
+): ResolvedConfig {
   const paths = getConfigPaths(projectRoot);
 
   // 1. 用户级配置（最低优先级）

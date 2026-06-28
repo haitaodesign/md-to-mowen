@@ -1,5 +1,5 @@
 import { MowenClient } from '../mowen/client.js';
-import { processFile, type PublishOptions, type PublishResult } from './process-file.js';
+import { processFile, type PublishResult } from './process-file.js';
 
 export type { PublishOptions, PublishResult } from './process-file.js';
 export type { PipelineStats } from './process-file.js';

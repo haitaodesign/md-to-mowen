@@ -23,7 +23,6 @@ import type {
   NoteAtomNote,
   NoteAtomPdf,
   NoteAtomTextNode,
-  NoteAtomMark,
 } from './types.js';
 
 let _idCounter = 0;
@@ -50,7 +49,10 @@ export function noteAtomToMast(doc: NoteAtomDoc): MASTDocument {
 
 // ── 块节点转换 ─────────────────────────────────────────────────────────────────
 
-function convertNode(node: NoteAtomBlockNode, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId | null {
+function convertNode(
+  node: NoteAtomBlockNode,
+  blocks: Record<MASTBlockId, MASTBlockNode>
+): MASTBlockId | null {
   switch (node.type) {
     case 'paragraph':
       return convertParagraph(node, blocks);
@@ -69,7 +71,10 @@ function convertNode(node: NoteAtomBlockNode, blocks: Record<MASTBlockId, MASTBl
   }
 }
 
-function convertParagraph(block: NoteAtomParagraph, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId {
+function convertParagraph(
+  block: NoteAtomParagraph,
+  blocks: Record<MASTBlockId, MASTBlockNode>
+): MASTBlockId {
   const id = newId();
   const content: MASTTextRun[] = (block.content ?? []).map(convertTextRun);
   const mast: MASTParagraphBlock = { id, type: 'paragraph', content };
@@ -77,7 +82,10 @@ function convertParagraph(block: NoteAtomParagraph, blocks: Record<MASTBlockId, 
   return id;
 }
 
-function convertQuote(block: NoteAtomQuote, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId {
+function convertQuote(
+  block: NoteAtomQuote,
+  blocks: Record<MASTBlockId, MASTBlockNode>
+): MASTBlockId {
   const id = newId();
   const children: MASTBlockId[] = [];
 
@@ -91,7 +99,10 @@ function convertQuote(block: NoteAtomQuote, blocks: Record<MASTBlockId, MASTBloc
   return id;
 }
 
-function convertImage(block: NoteAtomImage, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId {
+function convertImage(
+  block: NoteAtomImage,
+  blocks: Record<MASTBlockId, MASTBlockNode>
+): MASTBlockId {
   const id = newId();
   const mast: MASTImageBlock = {
     id,
@@ -105,7 +116,10 @@ function convertImage(block: NoteAtomImage, blocks: Record<MASTBlockId, MASTBloc
   return id;
 }
 
-function convertAudio(block: NoteAtomAudio, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId {
+function convertAudio(
+  block: NoteAtomAudio,
+  blocks: Record<MASTBlockId, MASTBlockNode>
+): MASTBlockId {
   const id = newId();
   const mast: MASTAudioBlock = {
     id,
@@ -118,7 +132,10 @@ function convertAudio(block: NoteAtomAudio, blocks: Record<MASTBlockId, MASTBloc
   return id;
 }
 
-function convertCodeBlock(block: NoteAtomCodeBlock, blocks: Record<MASTBlockId, MASTBlockNode>): MASTBlockId {
+function convertCodeBlock(
+  block: NoteAtomCodeBlock,
+  blocks: Record<MASTBlockId, MASTBlockNode>
+): MASTBlockId {
   const id = newId();
   const mast: MASTCodeBlock = {
     id,

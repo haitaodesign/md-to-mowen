@@ -9,9 +9,7 @@ import {
   closeSync,
   renameSync,
   unlinkSync,
-  statSync,
 } from 'fs';
-import { promises as fsPromises } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 
@@ -186,7 +184,12 @@ function parseLockFile(lockPath: string): LockInfo | null {
     const raw = readFileSync(lockPath, 'utf8');
     const data = JSON.parse(raw);
 
-    if (data && typeof data === 'object' && typeof data.pid === 'number' && typeof data.createdAt === 'string') {
+    if (
+      data &&
+      typeof data === 'object' &&
+      typeof data.pid === 'number' &&
+      typeof data.createdAt === 'string'
+    ) {
       return data as LockInfo;
     }
 
@@ -242,7 +245,7 @@ async function acquireLock(lockPath: string): Promise<void> {
       const holderPid = existingLock?.pid ?? 'unknown';
       const holderTime = existingLock?.createdAt ?? 'unknown';
       throw new Error(
-        `获取文件锁超时（等待 ${LOCK_WAIT_MS}ms）。锁文件：${lockPath}，持有者 PID：${holderPid}，创建时间：${holderTime}`,
+        `获取文件锁超时（等待 ${LOCK_WAIT_MS}ms）。锁文件：${lockPath}，持有者 PID：${holderPid}，创建时间：${holderTime}`
       );
     }
 
@@ -280,7 +283,10 @@ export async function writeMetadataAsync(filePath: string, store: MetadataStore)
  * @param operation 修改操作函数，接收当前 store，返回更新后的 store
  * @throws 锁等待超时时抛出错误
  */
-export async function withLock(filePath: string, operation: (store: MetadataStore) => MetadataStore): Promise<void> {
+export async function withLock(
+  filePath: string,
+  operation: (store: MetadataStore) => MetadataStore
+): Promise<void> {
   const lockPath = filePath + LOCK_SUFFIX;
 
   await acquireLock(lockPath);
