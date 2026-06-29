@@ -12,7 +12,13 @@ import { processDirectory } from '../publish/process-directory.js';
 import { MowenClient, Visibility } from '../mowen/client.js';
 import { noteAtomToMast } from '../noteatom/to-mast.js';
 import { mastToMarkdown } from '../mast/to-markdown.js';
-import { findMetadataPath, readMetadata, writeMetadata, lookupNote, upsertNote } from '../shared/metadata.js';
+import {
+  findMetadataPath,
+  readMetadata,
+  writeMetadata,
+  lookupNote,
+  upsertNote,
+} from '../shared/metadata.js';
 import { loadConfig, type MdToMowenConfig } from '../shared/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -415,6 +421,120 @@ program
       } else {
         console.log(formatStatusTable(entries));
       }
+    }
+  });
+
+// ── install-skill ─────────────────────────────────────────────────────────────
+
+program
+  .command('install-skill')
+  .description('安装 AI 工具技能（Claude Code、Cursor 等）')
+  .option('--level <level>', '安装级别：user（用户级）或 project（项目级）')
+  .option('--tool <tool>', 'AI 工具：claude 或 cursor')
+  .action(async (opts) => {
+    const { detectTools, getSkillTargetDir, checkExisting, installSkill } =
+      await import('../core/install-skill.js');
+
+    // 检测已安装的工具
+    const detected = detectTools();
+
+    if (detected.length === 0) {
+      console.log('未检测到已安装的 AI 工具（Claude Code、Cursor）。');
+      console.log('');
+      console.log('请先安装其中一种工具，然后重新运行此命令。');
+      process.exit(1);
+    }
+
+    // 选择工具
+    let tool = detected[0]; // 默认第一个
+
+    if (opts.tool) {
+      const found = detected.find(
+        (t) =>
+          t.name.toLowerCase().includes(opts.tool.toLowerCase()) ||
+          (opts.tool === 'claude' && t.name.includes('Claude')) ||
+          (opts.tool === 'cursor' && t.name.includes('Cursor'))
+      );
+      if (!found) {
+        console.error(`错误：未检测到 ${opts.tool} 工具`);
+        process.exit(1);
+      }
+      tool = found;
+    } else if (detected.length > 1) {
+      console.log('🔍 检测到已安装的 AI 工具：');
+      detected.forEach((t, i) => console.log(`  ${i + 1}. ${t.name}`));
+      console.log('');
+
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      const answer = await new Promise<string>((resolve) => {
+        rl.question(`请选择工具 (1-${detected.length}): `, resolve);
+      });
+      rl.close();
+
+      const index = parseInt(answer, 10) - 1;
+      if (isNaN(index) || index < 0 || index >= detected.length) {
+        console.error('错误：无效的选择');
+        process.exit(1);
+      }
+      tool = detected[index];
+    }
+
+    // 选择安装级别
+    let level: 'user' | 'project' = 'user';
+
+    if (opts.level) {
+      if (opts.level !== 'user' && opts.level !== 'project') {
+        console.error('错误：--level 必须是 user 或 project');
+        process.exit(1);
+      }
+      level = opts.level;
+    } else {
+      console.log(`📦 安装级别：`);
+      console.log(`  1. 用户级 (所有项目可用) ← 推荐`);
+      console.log(`  2. 项目级 (仅当前项目)`);
+      console.log('');
+
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      const answer = await new Promise<string>((resolve) => {
+        rl.question('请选择 (1-2): ', resolve);
+      });
+      rl.close();
+
+      level = answer === '2' ? 'project' : 'user';
+    }
+
+    // 获取目标目录
+    const targetDir = getSkillTargetDir(tool, level);
+
+    // 检查是否已有安装
+    const existing = checkExisting(targetDir);
+
+    if (existing.exists) {
+      console.log(`⚠️  检测到已有技能版本：`);
+      console.log(`   ${targetDir}${existing.version ? ` (v${existing.version})` : ''}`);
+      console.log('');
+
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      const answer = await new Promise<string>((resolve) => {
+        rl.question('是否覆盖？(y/N): ', resolve);
+      });
+      rl.close();
+
+      if (answer.toLowerCase() !== 'y') {
+        console.log('已取消安装。');
+        return;
+      }
+    }
+
+    // 安装
+    try {
+      installSkill(targetDir);
+      console.log('');
+      console.log(`✅ 技能已安装到 ${targetDir}/`);
+      console.log(`📖 使用方法：在 ${tool.name} 中输入 /mowen 或说「发布笔记」`);
+    } catch (err) {
+      console.error('安装失败：', err instanceof Error ? err.message : err);
+      process.exit(1);
     }
   });
 

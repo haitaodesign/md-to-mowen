@@ -64,7 +64,11 @@ describe('CLI', () => {
       expect(stdout).toContain('配图检查通过');
       expect(stdout).toContain('文章长度检查通过');
     } finally {
-      unlinkSync(tempFile);
+      try {
+        unlinkSync(tempFile);
+      } catch {
+        // Ignore if file doesn't exist
+      }
     }
   });
 
