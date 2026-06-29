@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/momolibrary/md-to-mowen/compare/v1.4.1...v1.5.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* 移除未使用的 import ([279d9a5](https://github.com/momolibrary/md-to-mowen/commit/279d9a57aa77af8a62cbcae17cbbca559e3031e5))
+
+
+### Features
+
+* 添加 install-skill 命令，支持 Claude Code 和 Cursor 技能安装 ([5a018a2](https://github.com/momolibrary/md-to-mowen/commit/5a018a2aeb2e4582d0b7117cd020387a63ee49a2))
+
 ## [1.4.1](https://github.com/momolibrary/md-to-mowen/compare/v1.4.0...v1.4.1) (2026-06-28)
 
 
